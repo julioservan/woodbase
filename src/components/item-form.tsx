@@ -26,8 +26,8 @@ function FormSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="space-y-4 rounded-2xl border border-border/60 bg-card p-4 shadow-warm sm:p-5">
-      <h2 className="eyebrow text-muted-foreground">{title}</h2>
+    <section className="panel-paper space-y-4 rounded-2xl p-4 sm:p-5">
+      <h2 className="eyebrow text-letterpress text-muted-foreground">{title}</h2>
       {children}
     </section>
   );
@@ -167,7 +167,6 @@ export function ItemForm({
             <Button
               type="button"
               variant="outline"
-              className="rounded-full"
               onClick={handleIdentify}
               disabled={!photoUrl || identifying || uploading}
             >
@@ -368,7 +367,7 @@ export function ItemForm({
         <Button
           type="submit"
           disabled={isPending || uploading}
-          className="h-10 rounded-full px-6"
+          className="h-10 px-6"
         >
           {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
           {submitLabel}

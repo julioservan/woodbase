@@ -3,7 +3,6 @@ import { cookies } from "next/headers";
 import { isValidSession, SESSION_COOKIE, sessionToken } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 export const dynamic = "force-dynamic";
 
@@ -40,29 +39,39 @@ export default async function LoginPage({
   const { error } = await searchParams;
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-9 bg-walnut p-6 text-walnut-foreground texture-wood">
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-9 bg-planks-dark p-6 text-walnut-foreground">
       <div className="flex flex-col items-center gap-4 text-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/icon.svg"
           alt=""
-          className="h-24 w-24 rounded-[22px] shadow-warm-lg ring-1 ring-amber/30"
+          className="h-24 w-24 rounded-[22px] shadow-[0_10px_20px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.2)] ring-1 ring-black/50"
         />
         <div className="space-y-1.5">
-          <h1 className="font-display text-5xl font-semibold tracking-tight">
+          <h1 className="text-engraved font-display text-5xl font-semibold tracking-tight">
             Woodbase
           </h1>
-          <p className="mx-auto max-w-64 text-sm leading-relaxed text-walnut-foreground/60">
+          <p className="mx-auto max-w-64 text-sm leading-relaxed text-walnut-foreground/60 [text-shadow:0_1px_2px_rgba(0,0,0,0.6)]">
             El inventario de madera de tu taller, con cada pieza en su sitio.
           </p>
         </div>
       </div>
+      {/* Tarjeta de cuero cosido */}
       <form
         action={login}
-        className="w-full max-w-sm space-y-4 rounded-2xl border border-amber/20 bg-card p-6 text-foreground shadow-warm-lg"
+        className="relative w-full max-w-sm space-y-4 rounded-2xl border border-[#241507] bg-gradient-to-b from-[#7a5233] to-[#573921] p-7 shadow-[0_20px_36px_-12px_rgba(0,0,0,0.75),inset_0_1px_0_rgba(255,222,170,0.3)] texture-paper"
       >
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-2.5 rounded-xl border-2 border-dashed border-[#e8cfa4]/35"
+        />
         <div className="space-y-2">
-          <Label htmlFor="password">Contraseña</Label>
+          <label
+            htmlFor="password"
+            className="text-engraved text-sm font-semibold text-walnut-foreground"
+          >
+            Contraseña
+          </label>
           <Input
             id="password"
             name="password"
@@ -70,15 +79,18 @@ export default async function LoginPage({
             required
             autoFocus
             placeholder="••••••••"
-            className="h-11"
+            className="relative h-11 border-[#33200e]"
           />
         </div>
         {error && (
-          <p className="text-sm text-destructive">
+          <p className="text-sm font-medium text-[#ffc9b3] [text-shadow:0_1px_1px_rgba(0,0,0,0.5)]">
             Contraseña incorrecta. Inténtalo de nuevo.
           </p>
         )}
-        <Button type="submit" className="h-11 w-full rounded-full text-[15px]">
+        <Button
+          type="submit"
+          className="relative h-11 w-full text-[15px]"
+        >
           Entrar al taller
         </Button>
       </form>

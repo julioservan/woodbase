@@ -5,79 +5,148 @@
     "Segoe UI", sans-serif;
   --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
 
-  /* Paleta taller de carpintería: papel cálido, nogal oscuro y ámbar */
-  --color-background: #f3eee3;
-  --color-foreground: #2b2118;
-  --color-card: #fffdf8;
-  --color-card-foreground: #2b2118;
-  --color-muted: #eae1cf;
-  --color-muted-foreground: #837662;
-  --color-border: #decfb4;
-  --color-input: #d3c3a5;
-  --color-primary: #8a5a2b;
-  --color-primary-foreground: #fdf7ec;
-  --color-accent: #f1e6cf;
+  /* Esqueuomorfismo de taller: tablones, papel, latón y cuero */
+  --color-background: #e7d4ae;
+  --color-foreground: #3a2c1c;
+  --color-card: #fdfaf1;
+  --color-card-foreground: #3a2c1c;
+  --color-muted: #f0e7d2;
+  --color-muted-foreground: #8a7a61;
+  --color-border: #c9b28c;
+  --color-input: #b89a6f;
+  --color-primary: #a4661f;
+  --color-primary-foreground: #fff8ea;
+  --color-accent: #f3e9d3;
   --color-accent-foreground: #6f4a26;
-  --color-walnut: #2f2317;
-  --color-walnut-foreground: #f0e6d2;
-  --color-amber: #dfa557;
-  --color-amber-foreground: #2b1e13;
+  --color-walnut: #38281a;
+  --color-walnut-foreground: #f2e7cf;
+  --color-amber: #e2a94f;
+  --color-amber-foreground: #35240f;
   --color-destructive: #a83c2a;
   --color-destructive-foreground: #fdf3ef;
-  --color-ring: #c79a5f;
+  --color-ring: #d89b45;
 
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
-  --radius-2xl: 1.25rem;
+  --radius-lg: 0.625rem;
+  --radius-xl: 0.875rem;
+  --radius-2xl: 1.125rem;
 }
 
-/* Sombra cálida en dos capas, teñida de nogal */
-@utility shadow-warm {
-  box-shadow:
-    0 1px 2px rgb(43 30 19 / 0.05),
-    0 10px 30px -14px rgb(43 30 19 / 0.28);
+/* ---------- Texturas ---------- */
+
+/* Tablones claros de pino (fondo general): vetas verticales + juntas */
+@utility bg-planks {
+  background-color: #e7d4ae;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='512' height='1024'%3E%3Cfilter id='g' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.11 0.006' numOctaves='4' seed='9' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.36 0 0 0 0 0.24 0 0 0 0 0.11 0 0 0 0.10 0'/%3E%3C/filter%3E%3Crect width='512' height='1024' filter='url(%23g)'/%3E%3C/svg%3E"),
+    repeating-linear-gradient(
+      90deg,
+      rgba(90, 60, 28, 0.22) 0px,
+      rgba(90, 60, 28, 0.22) 1px,
+      rgba(255, 248, 230, 0.28) 1px,
+      rgba(255, 248, 230, 0.28) 2px,
+      transparent 2px,
+      transparent 172px
+    );
+  background-size: 512px 1024px, 172px 100%;
 }
 
-@utility shadow-warm-lg {
-  box-shadow:
-    0 2px 4px rgb(43 30 19 / 0.06),
-    0 18px 44px -16px rgb(43 30 19 / 0.38);
+/* Tablones oscuros de nogal (cabecera y login) */
+@utility bg-planks-dark {
+  background-color: #38281a;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='512' height='1024'%3E%3Cfilter id='g' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.10 0.005' numOctaves='4' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.91 0 0 0 0 0.70 0 0 0 0 0.42 0 0 0 0.08 0'/%3E%3C/filter%3E%3Crect width='512' height='1024' filter='url(%23g)'/%3E%3C/svg%3E"),
+    repeating-linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.45) 0px,
+      rgba(0, 0, 0, 0.45) 2px,
+      rgba(255, 226, 170, 0.07) 2px,
+      rgba(255, 226, 170, 0.07) 3px,
+      transparent 3px,
+      transparent 196px
+    ),
+    linear-gradient(#40301d, #2c1f11);
+  background-size: 512px 1024px, 196px 100%, 100% 100%;
 }
 
-/* Veta de madera horizontal, para superficies nogal */
-@utility texture-wood {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1024' height='512'%3E%3Cfilter id='w' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.008 0.11' numOctaves='4' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.89 0 0 0 0 0.65 0 0 0 0 0.38 0 0 0 0.07 0'/%3E%3C/filter%3E%3Crect width='1024' height='512' filter='url(%23w)'/%3E%3C/svg%3E");
-  background-size: 1024px 512px;
-}
-
-/* Grano de papel fino */
+/* Grano de papel para paneles */
 @utility texture-paper {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.17 0 0 0 0 0.12 0 0 0 0 0.07 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23p)'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.17 0 0 0 0 0.12 0 0 0 0 0.07 0 0 0 0.045 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23p)'/%3E%3C/svg%3E");
 }
 
-/* Etiqueta pequeña en versalitas, estilo ficha técnica */
-@utility eyebrow {
-  font-size: 0.6875rem;
-  font-weight: 650;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+/* ---------- Relieves ---------- */
+
+/* Texto prensado sobre superficies claras (letterpress) */
+@utility text-letterpress {
+  text-shadow: 0 1px 0 rgba(255, 252, 240, 0.6);
+}
+
+/* Texto grabado sobre superficies oscuras */
+@utility text-engraved {
+  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.6);
+}
+
+/* Panel de papel con textura y profundidad física */
+@utility panel-paper {
+  background-color: var(--color-card);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.17 0 0 0 0 0.12 0 0 0 0 0.07 0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23p)'/%3E%3C/svg%3E");
+  border: 1px solid rgba(122, 90, 53, 0.45);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 1px 2px rgba(40, 24, 10, 0.25),
+    0 12px 22px -12px rgba(40, 24, 10, 0.5);
+}
+
+/* Balda de madera sobre la que se apoyan las piezas (iBooks-style) */
+@utility shelf {
+  height: 14px;
+  border-radius: 3px;
+  background:
+    linear-gradient(#bc8d5a, #96693e 55%, #6b4728);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 246, 225, 0.55),
+    inset 0 -3px 4px rgba(40, 24, 10, 0.5),
+    0 8px 12px -4px rgba(40, 24, 10, 0.6);
+}
+
+/* Chapa de latón (chips de cantidad, detalles) */
+@utility brass {
+  border: 1px solid #8a6524;
+  background-image: linear-gradient(#eccb80, #c39447 55%, #a87e34);
+  color: #3b2a10;
+  text-shadow: 0 1px 0 rgba(255, 245, 220, 0.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 1px 3px rgba(30, 18, 8, 0.45);
 }
 
 body {
-  background-color: var(--color-background);
   color: var(--color-foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
-  background-image: radial-gradient(
-      circle at 12% 0%,
-      rgba(138, 90, 43, 0.06),
-      transparent 40%
-    ),
-    radial-gradient(circle at 95% 100%, rgba(138, 90, 43, 0.05), transparent 42%),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.17 0 0 0 0 0.12 0 0 0 0 0.07 0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23p)'/%3E%3C/svg%3E");
+  background-color: #e7d4ae;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='512' height='1024'%3E%3Cfilter id='g' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.11 0.006' numOctaves='4' seed='9' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.36 0 0 0 0 0.24 0 0 0 0 0.11 0 0 0 0.10 0'/%3E%3C/filter%3E%3Crect width='512' height='1024' filter='url(%23g)'/%3E%3C/svg%3E"),
+    repeating-linear-gradient(
+      90deg,
+      rgba(90, 60, 28, 0.22) 0px,
+      rgba(90, 60, 28, 0.22) 1px,
+      rgba(255, 248, 230, 0.28) 1px,
+      rgba(255, 248, 230, 0.28) 2px,
+      transparent 2px,
+      transparent 172px
+    );
+  background-size: 512px 1024px, 172px 100%;
+  background-attachment: fixed;
 }
 
 ::selection {
   background-color: var(--color-amber);
   color: var(--color-amber-foreground);
+}
+
+@utility eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }

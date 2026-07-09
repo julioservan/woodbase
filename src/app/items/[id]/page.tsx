@@ -66,11 +66,17 @@ export default async function ItemDetailPage({
         </Link>
 
         <div className="grid gap-7 md:grid-cols-[1.05fr_1fr]">
-          <WoodPhoto
-            url={item.photoUrl}
-            alt={item.name}
-            className="aspect-square w-full rounded-2xl border border-border/60 shadow-warm-lg"
-          />
+          {/* Foto enmarcada como un cuadro: paspartú de papel + marco fino */}
+          <div className="relative self-start rounded-md border border-[#7a5a35] bg-[#fdfaf2] p-2.5 shadow-[0_16px_28px_-10px_rgba(40,24,10,0.6),inset_0_1px_0_rgba(255,255,255,0.9)]">
+            <div className="relative overflow-hidden rounded-sm">
+              <WoodPhoto
+                url={item.photoUrl}
+                alt={item.name}
+                className="aspect-square w-full"
+              />
+              <div className="pointer-events-none absolute inset-0 shadow-[inset_0_2px_10px_rgba(30,18,8,0.45),inset_0_0_0_1px_rgba(255,255,255,0.2)]" />
+            </div>
+          </div>
 
           <div className="space-y-5">
             <div className="space-y-2">
@@ -84,7 +90,7 @@ export default async function ItemDetailPage({
                   )}
                 </p>
               )}
-              <h1 className="font-display text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
+              <h1 className="text-letterpress font-display text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
                 {item.name}
               </h1>
               {item.tags.length > 0 && (
@@ -99,7 +105,7 @@ export default async function ItemDetailPage({
             </div>
 
             {/* Ficha técnica */}
-            <dl className="divide-y divide-border/60 rounded-2xl border border-border/60 bg-card shadow-warm">
+            <dl className="panel-paper divide-y divide-[#c9b28c]/60 rounded-2xl">
               <SpecRow label="Cantidad">
                 {item.quantity} {item.unit}
               </SpecRow>
@@ -124,7 +130,7 @@ export default async function ItemDetailPage({
             </dl>
 
             {item.notes && (
-              <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-warm">
+              <div className="panel-paper rounded-2xl p-4">
                 <h2 className="eyebrow mb-1.5 text-muted-foreground">Notas</h2>
                 <p className="whitespace-pre-wrap text-sm leading-relaxed">
                   {item.notes}
@@ -135,7 +141,7 @@ export default async function ItemDetailPage({
             <div className="flex gap-2 pt-1">
               <Link
                 href={`/items/${item.id}/edit`}
-                className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-4 text-sm font-medium shadow-sm transition-colors hover:bg-accent"
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#b09468] bg-gradient-to-b from-[#fffdf5] to-[#efe4c9] px-4 text-sm font-semibold text-foreground [text-shadow:0_1px_0_rgba(255,255,255,0.7)] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_2px_rgba(43,30,19,0.3)] transition-all hover:to-[#f6eeda] active:shadow-[inset_0_2px_5px_rgba(90,70,40,0.3)]"
               >
                 <Pencil className="h-3.5 w-3.5" /> Editar
               </Link>

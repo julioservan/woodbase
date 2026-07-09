@@ -17,7 +17,7 @@ export default function NewItemPage() {
         >
           <ArrowLeft className="h-4 w-4" /> Volver al inventario
         </Link>
-        <h1 className="mb-6 font-display text-2xl font-semibold tracking-tight">
+        <h1 className="text-letterpress mb-6 font-display text-2xl font-semibold tracking-tight">
           Nueva pieza de madera
         </h1>
         <ItemForm action={createItem} submitLabel="Guardar pieza" />
