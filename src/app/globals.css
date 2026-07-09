@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+
+  /* Paleta cálida, aire Notion/Airtable con acento madera */
+  --color-background: #fafaf8;
+  --color-foreground: #37352f;
+  --color-card: #ffffff;
+  --color-card-foreground: #37352f;
+  --color-muted: #f1f0ec;
+  --color-muted-foreground: #787670;
+  --color-border: #e8e6e1;
+  --color-input: #e8e6e1;
+  --color-primary: #8b5e34;
+  --color-primary-foreground: #ffffff;
+  --color-accent: #f5efe6;
+  --color-accent-foreground: #6f4a26;
+  --color-destructive: #c0392b;
+  --color-destructive-foreground: #ffffff;
+  --color-ring: #c9a37a;
+
+  --radius-lg: 0.625rem;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
