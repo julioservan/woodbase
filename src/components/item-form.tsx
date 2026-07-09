@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { upload } from "@vercel/blob/client";
 import { Camera, Loader2, Sparkles, X } from "lucide-react";
 import type { WoodItem } from "@/lib/db/schema";
 import { CUT_LABELS, CUT_TYPES, formatInches } from "@/lib/utils";
@@ -66,12 +67,11 @@ export function ItemForm({
     setUploading(true);
     setUploadError(null);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body: formData });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Error al subir la foto");
-      setPhotoUrl(data.url);
+      const blob = await upload(`wood/${file.name}`, file, {
+        access: "public",
+        handleUploadUrl: "/api/upload",
+      });
+      setPhotoUrl(blob.url);
       setIdentifyResult(null);
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : "Error al subir la foto");

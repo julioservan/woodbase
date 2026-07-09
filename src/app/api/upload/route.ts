@@ -1,40 +1,49 @@
+import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { put } from "@vercel/blob";
+import { isValidSession, SESSION_COOKIE } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
-const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
-
-// Sube la foto a Vercel Blob desde el servidor: el token
+// Subida directa navegador → Vercel Blob. El navegador pide un token a esta
+// ruta y sube el archivo directo al store, sin pasar el archivo por la
+// función serverless (evita el límite de 4,5 MB de Vercel). El token
 // BLOB_READ_WRITE_TOKEN nunca llega al cliente.
-export async function POST(request: Request) {
-  const formData = await request.formData();
-  const file = formData.get("file");
+export async function POST(request: Request): Promise<NextResponse> {
+  const body = (await request.json()) as HandleUploadBody;
 
-  if (!(file instanceof File)) {
+  try {
+    const jsonResponse = await handleUpload({
+      body,
+      request,
+      onBeforeGenerateToken: async () => {
+        // La ruta está exenta del middleware, así que validamos la sesión
+        // aquí (esta parte solo se ejecuta para la petición del navegador,
+        // no para el callback de Vercel).
+        const cookieStore = await cookies();
+        if (!(await isValidSession(cookieStore.get(SESSION_COOKIE)?.value))) {
+          throw new Error("No autorizado");
+        }
+        return {
+          allowedContentTypes: [
+            "image/jpeg",
+            "image/png",
+            "image/gif",
+            "image/webp",
+          ],
+          maximumSizeInBytes: 15 * 1024 * 1024, // 15 MB
+          addRandomSuffix: true,
+        };
+      },
+      // Vercel llama a este callback (server-to-server) al terminar la subida.
+      onUploadCompleted: async () => {},
+    });
+
+    return NextResponse.json(jsonResponse);
+  } catch (error) {
     return NextResponse.json(
-      { error: "Falta el archivo 'file'" },
+      { error: error instanceof Error ? error.message : "Error al subir" },
       { status: 400 },
     );
   }
-  if (!file.type.startsWith("image/")) {
-    return NextResponse.json(
-      { error: "Solo se permiten imágenes" },
-      { status: 400 },
-    );
-  }
-  if (file.size > MAX_SIZE_BYTES) {
-    return NextResponse.json(
-      { error: "La imagen supera el máximo de 10 MB" },
-      { status: 400 },
-    );
-  }
-
-  const extension = file.name.split(".").pop() || "jpg";
-  const blob = await put(`wood/${crypto.randomUUID()}.${extension}`, file, {
-    access: "public",
-    contentType: file.type,
-  });
-
-  return NextResponse.json({ url: blob.url });
 }
