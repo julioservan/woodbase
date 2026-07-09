@@ -10,7 +10,15 @@ export const runtime = "nodejs";
 // función serverless (evita el límite de 4,5 MB de Vercel). El token
 // BLOB_READ_WRITE_TOKEN nunca llega al cliente.
 export async function POST(request: Request): Promise<NextResponse> {
-  const body = (await request.json()) as HandleUploadBody;
+  let body: HandleUploadBody;
+  try {
+    body = (await request.json()) as HandleUploadBody;
+  } catch {
+    return NextResponse.json(
+      { error: "Recarga la página e inténtalo de nuevo" },
+      { status: 400 },
+    );
+  }
 
   try {
     const jsonResponse = await handleUpload({
@@ -41,6 +49,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     return NextResponse.json(jsonResponse);
   } catch (error) {
+    console.error("Error en /api/upload:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Error al subir" },
       { status: 400 },
