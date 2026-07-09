@@ -13,7 +13,7 @@ async function logout() {
 
 export function Header() {
   return (
-    <header className="sticky top-0 z-10 bg-walnut text-walnut-foreground shadow-md">
+    <header className="sticky top-0 z-10 border-b border-amber/25 bg-walnut text-walnut-foreground shadow-warm-lg texture-wood">
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
         <Link href="/" className="group flex items-center gap-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}

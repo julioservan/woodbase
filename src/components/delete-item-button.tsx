@@ -16,6 +16,7 @@ export function DeleteItemButton({
       type="button"
       variant="destructive"
       size="sm"
+      className="h-9 rounded-full px-4 text-sm"
       disabled={isPending}
       onClick={() => {
         if (confirm("¿Seguro que quieres borrar esta pieza? No se puede deshacer.")) {

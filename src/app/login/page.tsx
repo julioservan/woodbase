@@ -40,20 +40,26 @@ export default async function LoginPage({
   const { error } = await searchParams;
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-8 p-6">
-      <div className="flex flex-col items-center gap-3 text-center">
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-9 bg-walnut p-6 text-walnut-foreground texture-wood">
+      <div className="flex flex-col items-center gap-4 text-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/icon.svg" alt="" className="h-20 w-20 drop-shadow-md" />
-        <h1 className="font-display text-4xl font-semibold tracking-tight">
-          Woodbase
-        </h1>
-        <p className="max-w-60 text-sm leading-relaxed text-muted-foreground">
-          El inventario de madera de tu taller, con cada pieza en su sitio.
-        </p>
+        <img
+          src="/icon.svg"
+          alt=""
+          className="h-24 w-24 rounded-[22px] shadow-warm-lg ring-1 ring-amber/30"
+        />
+        <div className="space-y-1.5">
+          <h1 className="font-display text-5xl font-semibold tracking-tight">
+            Woodbase
+          </h1>
+          <p className="mx-auto max-w-64 text-sm leading-relaxed text-walnut-foreground/60">
+            El inventario de madera de tu taller, con cada pieza en su sitio.
+          </p>
+        </div>
       </div>
       <form
         action={login}
-        className="w-full max-w-sm space-y-4 rounded-xl border border-border bg-card p-6 shadow-sm"
+        className="w-full max-w-sm space-y-4 rounded-2xl border border-amber/20 bg-card p-6 text-foreground shadow-warm-lg"
       >
         <div className="space-y-2">
           <Label htmlFor="password">Contraseña</Label>
@@ -64,7 +70,7 @@ export default async function LoginPage({
             required
             autoFocus
             placeholder="••••••••"
-            className="h-10"
+            className="h-11"
           />
         </div>
         {error && (
@@ -72,7 +78,7 @@ export default async function LoginPage({
             Contraseña incorrecta. Inténtalo de nuevo.
           </p>
         )}
-        <Button type="submit" className="h-10 w-full">
+        <Button type="submit" className="h-11 w-full rounded-full text-[15px]">
           Entrar al taller
         </Button>
       </form>

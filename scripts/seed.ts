@@ -48,8 +48,8 @@ async function main() {
     {
       name: "Listones de pino",
       species: "pino",
-      quantity: 12,
-      unit: "metros lineales",
+      quantity: 32,
+      unit: "pies lineales",
       lengthIn: 96,
       widthIn: 1.75,
       thicknessIn: 0.75,

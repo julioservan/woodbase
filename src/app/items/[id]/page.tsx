@@ -8,30 +8,26 @@ import { deleteItem } from "@/app/items/actions";
 import { Header } from "@/components/header";
 import { WoodPhoto } from "@/components/wood-photo";
 import { DeleteItemButton } from "@/components/delete-item-button";
-import { Badge, moistureBadgeVariant } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Badge, MoistureBadge } from "@/components/ui/badge";
 import { formatConfidence, formatDimensions } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-const MOISTURE_LABELS: Record<string, string> = {
-  verde: "Verde",
-  secando: "Secando",
-  seco: "Seco",
-};
-
 const dateFormatter = new Intl.DateTimeFormat("es-ES", {
-  dateStyle: "medium",
-  timeStyle: "short",
+  dateStyle: "long",
 });
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function SpecRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div>
-      <dt className="text-xs uppercase tracking-wide text-muted-foreground">
-        {label}
-      </dt>
-      <dd className="mt-0.5 text-sm">{children}</dd>
+    <div className="flex items-center justify-between gap-4 px-4 py-3">
+      <dt className="eyebrow shrink-0 text-muted-foreground">{label}</dt>
+      <dd className="text-right text-sm font-medium">{children}</dd>
     </div>
   );
 }
@@ -61,80 +57,85 @@ export default async function ItemDetailPage({
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-3xl px-4 py-6">
+      <main className="mx-auto max-w-4xl px-4 py-7">
         <Link
           href="/"
-          className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          className="mb-5 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" /> Volver al inventario
         </Link>
 
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-7 md:grid-cols-[1.05fr_1fr]">
           <WoodPhoto
             url={item.photoUrl}
             alt={item.name}
-            className="aspect-square w-full rounded-xl border border-border shadow-sm"
+            className="aspect-square w-full rounded-2xl border border-border/60 shadow-warm-lg"
           />
 
-          <div className="space-y-4">
-            <div>
-              <h1 className="font-display text-3xl font-semibold tracking-tight">
+          <div className="space-y-5">
+            <div className="space-y-2">
+              {item.species && (
+                <p className="eyebrow text-primary">
+                  {item.species}
+                  {confidence && (
+                    <span className="ml-2 font-normal normal-case tracking-normal text-muted-foreground">
+                      identificada por IA · {confidence}
+                    </span>
+                  )}
+                </p>
+              )}
+              <h1 className="font-display text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
                 {item.name}
               </h1>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {item.species && (
-                  <Badge>
-                    {item.species}
-                    {confidence && (
-                      <span className="ml-1 opacity-70">
-                        (IA {confidence})
-                      </span>
-                    )}
-                  </Badge>
-                )}
-                {item.moistureState && (
-                  <Badge variant={moistureBadgeVariant(item.moistureState)}>
-                    {MOISTURE_LABELS[item.moistureState]}
-                  </Badge>
-                )}
-                {item.tags.map((tag) => (
-                  <Badge key={tag} variant="outline">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
+              {item.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {item.tags.map((tag) => (
+                    <Badge key={tag} variant="outline">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
 
-            <Card>
-              <CardContent>
-                <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
-                  <Field label="Cantidad">
-                    {item.quantity} {item.unit}
-                  </Field>
-                  <Field label="Ubicación">{item.location ?? "—"}</Field>
-                  <Field label="Dimensiones">{dimensions ?? "—"}</Field>
-                  <Field label="Añadida">
-                    {dateFormatter.format(item.createdAt)}
-                  </Field>
-                </dl>
-              </CardContent>
-            </Card>
+            {/* Ficha técnica */}
+            <dl className="divide-y divide-border/60 rounded-2xl border border-border/60 bg-card shadow-warm">
+              <SpecRow label="Cantidad">
+                {item.quantity} {item.unit}
+              </SpecRow>
+              <SpecRow label="Dimensiones">
+                {dimensions ? (
+                  <span className="tabular-nums">{dimensions}</span>
+                ) : (
+                  "—"
+                )}
+              </SpecRow>
+              <SpecRow label="Estado">
+                {item.moistureState ? (
+                  <MoistureBadge state={item.moistureState} />
+                ) : (
+                  "—"
+                )}
+              </SpecRow>
+              <SpecRow label="Ubicación">{item.location ?? "—"}</SpecRow>
+              <SpecRow label="Añadida">
+                {dateFormatter.format(item.createdAt)}
+              </SpecRow>
+            </dl>
 
             {item.notes && (
-              <Card>
-                <CardContent>
-                  <h2 className="mb-1 text-xs uppercase tracking-wide text-muted-foreground">
-                    Notas
-                  </h2>
-                  <p className="whitespace-pre-wrap text-sm">{item.notes}</p>
-                </CardContent>
-              </Card>
+              <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-warm">
+                <h2 className="eyebrow mb-1.5 text-muted-foreground">Notas</h2>
+                <p className="whitespace-pre-wrap text-sm leading-relaxed">
+                  {item.notes}
+                </p>
+              </div>
             )}
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 pt-1">
               <Link
                 href={`/items/${item.id}/edit`}
-                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-card px-3 text-xs font-medium shadow-sm transition-colors hover:bg-accent"
+                className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-4 text-sm font-medium shadow-sm transition-colors hover:bg-accent"
               >
                 <Pencil className="h-3.5 w-3.5" /> Editar
               </Link>
