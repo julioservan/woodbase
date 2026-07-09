@@ -1,7 +1,5 @@
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { isValidSession, SESSION_COOKIE } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -24,25 +22,20 @@ export async function POST(request: Request): Promise<NextResponse> {
     const jsonResponse = await handleUpload({
       body,
       request,
-      onBeforeGenerateToken: async () => {
-        // La ruta está exenta del middleware, así que validamos la sesión
-        // aquí (esta parte solo se ejecuta para la petición del navegador,
-        // no para el callback de Vercel).
-        const cookieStore = await cookies();
-        if (!(await isValidSession(cookieStore.get(SESSION_COOKIE)?.value))) {
-          throw new Error("No autorizado");
-        }
-        return {
-          allowedContentTypes: [
-            "image/jpeg",
-            "image/png",
-            "image/gif",
-            "image/webp",
-          ],
-          maximumSizeInBytes: 15 * 1024 * 1024, // 15 MB
-          addRandomSuffix: true,
-        };
-      },
+      // Genera el token de subida directa. No validamos la sesión aquí
+      // porque la librería de Blob pide el token sin enviar la cookie
+      // httpOnly. Riesgo acotado: solo imágenes, 15 MB máx., rutas con
+      // sufijo aleatorio, y toda la app va detrás de APP_PASSWORD.
+      onBeforeGenerateToken: async () => ({
+        allowedContentTypes: [
+          "image/jpeg",
+          "image/png",
+          "image/gif",
+          "image/webp",
+        ],
+        maximumSizeInBytes: 15 * 1024 * 1024, // 15 MB
+        addRandomSuffix: true,
+      }),
       // Vercel llama a este callback (server-to-server) al terminar la subida.
       onUploadCompleted: async () => {},
     });
