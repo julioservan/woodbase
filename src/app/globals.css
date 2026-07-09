@@ -1,27 +1,33 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", sans-serif;
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
 
-  /* Paleta cálida, aire Notion/Airtable con acento madera */
-  --color-background: #fafaf8;
-  --color-foreground: #37352f;
-  --color-card: #ffffff;
-  --color-card-foreground: #37352f;
-  --color-muted: #f1f0ec;
-  --color-muted-foreground: #787670;
-  --color-border: #e8e6e1;
-  --color-input: #e8e6e1;
-  --color-primary: #8b5e34;
-  --color-primary-foreground: #ffffff;
-  --color-accent: #f5efe6;
+  /* Paleta taller de carpintería: papel cálido, nogal oscuro y ámbar */
+  --color-background: #f4f0e7;
+  --color-foreground: #2b2118;
+  --color-card: #fffdf7;
+  --color-card-foreground: #2b2118;
+  --color-muted: #eae2d2;
+  --color-muted-foreground: #867966;
+  --color-border: #ded2bd;
+  --color-input: #d6c9b1;
+  --color-primary: #8a5a2b;
+  --color-primary-foreground: #fdf7ec;
+  --color-accent: #f0e7d4;
   --color-accent-foreground: #6f4a26;
-  --color-destructive: #c0392b;
-  --color-destructive-foreground: #ffffff;
-  --color-ring: #c9a37a;
+  --color-walnut: #33261a;
+  --color-walnut-foreground: #f0e6d2;
+  --color-amber: #dfa557;
+  --color-amber-foreground: #2b1e13;
+  --color-destructive: #a83c2a;
+  --color-destructive-foreground: #fdf3ef;
+  --color-ring: #c79a5f;
 
-  --radius-lg: 0.625rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
 }
 
 body {
@@ -29,4 +35,17 @@ body {
   color: var(--color-foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  /* Grano de papel muy sutil */
+  background-image: radial-gradient(
+      circle at 15% 10%,
+      rgba(138, 90, 43, 0.045),
+      transparent 45%
+    ),
+    radial-gradient(circle at 85% 90%, rgba(138, 90, 43, 0.04), transparent 45%);
+  background-attachment: fixed;
+}
+
+::selection {
+  background-color: var(--color-amber);
+  color: var(--color-amber-foreground);
 }

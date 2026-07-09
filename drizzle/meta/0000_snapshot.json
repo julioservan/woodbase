@@ -1,5 +1,5 @@
 {
-  "id": "929ecb0d-4aed-4252-9393-11bc3a0cbb78",
+  "id": "5cd0ef27-f064-43ff-94d7-5556406c08fd",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -47,21 +47,21 @@
           "notNull": true,
           "default": "'tablones'"
         },
-        "length_mm": {
-          "name": "length_mm",
-          "type": "integer",
+        "length_in": {
+          "name": "length_in",
+          "type": "real",
           "primaryKey": false,
           "notNull": false
         },
-        "width_mm": {
-          "name": "width_mm",
-          "type": "integer",
+        "width_in": {
+          "name": "width_in",
+          "type": "real",
           "primaryKey": false,
           "notNull": false
         },
-        "thickness_mm": {
-          "name": "thickness_mm",
-          "type": "integer",
+        "thickness_in": {
+          "name": "thickness_in",
+          "type": "real",
           "primaryKey": false,
           "notNull": false
         },

@@ -7,7 +7,7 @@ Inventario personal de madera para el taller. Registra tablones y piezas con su 
 ## Funcionalidades (v1)
 
 - 📋 Listado del inventario con buscador y filtros por especie, estado de humedad y etiquetas
-- ➕ Crear / editar / borrar piezas con todos sus datos (dimensiones en mm, cantidad, ubicación, etiquetas, notas)
+- ➕ Crear / editar / borrar piezas con todos sus datos (dimensiones en pulgadas fraccionarias tipo carpintero — `3/4`, `1 1/2` —, cantidad, ubicación, etiquetas, notas)
 - 📷 Subida de foto (o captura con la cámara del móvil) a Vercel Blob
 - ✨ Identificación de especie por IA: envía la foto a Claude y pre-rellena el campo especie con confianza y alternativas (siempre orientativo — tú confirmas)
 - 🔍 Vista de detalle con foto grande

@@ -77,6 +77,18 @@ export default async function HomePage({
     <>
       <Header />
       <main className="mx-auto max-w-5xl px-4 py-6">
+        <div className="mb-5 flex items-baseline justify-between">
+          <h1 className="font-display text-3xl font-semibold tracking-tight">
+            Inventario
+          </h1>
+          {items.length > 0 && (
+            <p className="text-sm text-muted-foreground">
+              {items.length} {items.length === 1 ? "pieza" : "piezas"} en el
+              taller
+            </p>
+          )}
+        </div>
+
         {/* Buscador y filtros */}
         <form method="get" className="mb-6 space-y-3">
           <div className="relative">
@@ -86,7 +98,7 @@ export default async function HomePage({
               name="q"
               defaultValue={q ?? ""}
               placeholder="Buscar por nombre, especie, ubicación o notas..."
-              className="pl-9"
+              className="h-10 rounded-lg pl-9"
             />
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -160,43 +172,40 @@ export default async function HomePage({
             )}
           </div>
         ) : (
-          <>
-            <p className="mb-3 text-sm text-muted-foreground">
-              {items.length} {items.length === 1 ? "pieza" : "piezas"}
-            </p>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-              {items.map((item) => (
-                <Link key={item.id} href={`/items/${item.id}`}>
-                  <Card className="h-full overflow-hidden transition-shadow hover:shadow-md">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            {items.map((item) => (
+              <Link key={item.id} href={`/items/${item.id}`} className="group">
+                <Card className="h-full overflow-hidden rounded-xl transition-all duration-200 group-hover:-translate-y-0.5 group-hover:border-primary/30 group-hover:shadow-lg">
+                  <div className="overflow-hidden">
                     <WoodPhoto
                       url={item.photoUrl}
                       alt={item.name}
-                      className="aspect-square w-full"
+                      className="aspect-square w-full transition-transform duration-300 group-hover:scale-[1.04]"
                     />
-                    <div className="space-y-1.5 p-3">
-                      <h2 className="truncate text-sm font-medium">
-                        {item.name}
-                      </h2>
-                      <div className="flex flex-wrap gap-1">
-                        {item.species && <Badge>{item.species}</Badge>}
-                        {item.moistureState && (
-                          <Badge
-                            variant={moistureBadgeVariant(item.moistureState)}
-                          >
-                            {MOISTURE_LABELS[item.moistureState]}
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {item.quantity} {item.unit}
-                        {item.location && <> · {item.location}</>}
-                      </p>
+                  </div>
+                  <div className="space-y-1.5 p-3">
+                    <h2 className="truncate text-sm font-semibold">
+                      {item.name}
+                    </h2>
+                    <div className="flex flex-wrap gap-1">
+                      {item.species && <Badge>{item.species}</Badge>}
+                      {item.moistureState && (
+                        <Badge
+                          variant={moistureBadgeVariant(item.moistureState)}
+                        >
+                          {MOISTURE_LABELS[item.moistureState]}
+                        </Badge>
+                      )}
                     </div>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          </>
+                    <p className="text-xs text-muted-foreground">
+                      {item.quantity} {item.unit}
+                      {item.location && <> · {item.location}</>}
+                    </p>
+                  </div>
+                </Card>
+              </Link>
+            ))}
+          </div>
         )}
       </main>
     </>

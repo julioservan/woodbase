@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Camera, Loader2, Sparkles, X } from "lucide-react";
 import type { WoodItem } from "@/lib/db/schema";
+import { formatInches } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -289,36 +290,31 @@ export function ItemForm({
 
       {/* Dimensiones */}
       <div className="space-y-2">
-        <Label>Dimensiones (mm)</Label>
+        <Label>Dimensiones (pulgadas)</Label>
         <div className="grid grid-cols-3 gap-3">
           <Input
-            name="lengthMm"
-            type="number"
-            min="0"
-            inputMode="numeric"
-            placeholder="Largo"
-            aria-label="Largo en mm"
-            defaultValue={item?.lengthMm ?? ""}
+            name="lengthIn"
+            placeholder={'Largo · 96'}
+            aria-label="Largo en pulgadas"
+            defaultValue={formatInches(item?.lengthIn ?? null) ?? ""}
           />
           <Input
-            name="widthMm"
-            type="number"
-            min="0"
-            inputMode="numeric"
-            placeholder="Ancho"
-            aria-label="Ancho en mm"
-            defaultValue={item?.widthMm ?? ""}
+            name="widthIn"
+            placeholder={'Ancho · 7 1/4'}
+            aria-label="Ancho en pulgadas"
+            defaultValue={formatInches(item?.widthIn ?? null) ?? ""}
           />
           <Input
-            name="thicknessMm"
-            type="number"
-            min="0"
-            inputMode="numeric"
-            placeholder="Grosor"
-            aria-label="Grosor en mm"
-            defaultValue={item?.thicknessMm ?? ""}
+            name="thicknessIn"
+            placeholder={'Grosor · 3/4'}
+            aria-label="Grosor en pulgadas"
+            defaultValue={formatInches(item?.thicknessIn ?? null) ?? ""}
           />
         </div>
+        <p className="text-xs text-muted-foreground">
+          Acepta fracciones de carpintero: <code>3/4</code>,{" "}
+          <code>1 1/2</code>, <code>48</code>...
+        </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">

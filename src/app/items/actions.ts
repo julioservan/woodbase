@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { woodItems, type NewWoodItem } from "@/lib/db/schema";
+import { parseInches } from "@/lib/utils";
 
 const MOISTURE_STATES = ["verde", "secando", "seco"] as const;
 
@@ -21,10 +22,7 @@ function parseItemForm(formData: FormData): Omit<NewWoodItem, "id"> {
     const n = Number(v.replace(",", "."));
     return Number.isFinite(n) ? n : null;
   };
-  const int = (key: string): number | null => {
-    const n = num(key);
-    return n == null ? null : Math.round(n);
-  };
+  const inches = (key: string): number | null => parseInches(str(key));
 
   const name = str("name");
   if (!name) throw new Error("El nombre es obligatorio");
@@ -47,9 +45,9 @@ function parseItemForm(formData: FormData): Omit<NewWoodItem, "id"> {
     speciesConfidence: num("speciesConfidence"),
     quantity: num("quantity") ?? 1,
     unit: str("unit") ?? "tablones",
-    lengthMm: int("lengthMm"),
-    widthMm: int("widthMm"),
-    thicknessMm: int("thicknessMm"),
+    lengthIn: inches("lengthIn"),
+    widthIn: inches("widthIn"),
+    thicknessIn: inches("thicknessIn"),
     moistureState,
     location: str("location"),
     tags: Array.from(new Set(tags)),

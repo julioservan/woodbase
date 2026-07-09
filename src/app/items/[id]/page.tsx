@@ -51,9 +51,9 @@ export default async function ItemDetailPage({
   if (!item) notFound();
 
   const dimensions = formatDimensions(
-    item.lengthMm,
-    item.widthMm,
-    item.thicknessMm,
+    item.lengthIn,
+    item.widthIn,
+    item.thicknessIn,
   );
   const confidence = formatConfidence(item.speciesConfidence);
   const deleteThisItem = deleteItem.bind(null, item.id);
@@ -73,12 +73,14 @@ export default async function ItemDetailPage({
           <WoodPhoto
             url={item.photoUrl}
             alt={item.name}
-            className="aspect-square w-full rounded-lg border border-border"
+            className="aspect-square w-full rounded-xl border border-border shadow-sm"
           />
 
           <div className="space-y-4">
             <div>
-              <h1 className="text-2xl font-semibold">{item.name}</h1>
+              <h1 className="font-display text-3xl font-semibold tracking-tight">
+                {item.name}
+              </h1>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {item.species && (
                   <Badge>

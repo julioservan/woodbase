@@ -1,5 +1,4 @@
 import {
-  integer,
   pgEnum,
   pgTable,
   real,
@@ -25,9 +24,11 @@ export const woodItems = pgTable("wood_items", {
   speciesConfidence: real("species_confidence"),
   quantity: real("quantity").notNull().default(1),
   unit: text("unit").notNull().default("tablones"),
-  lengthMm: integer("length_mm"),
-  widthMm: integer("width_mm"),
-  thicknessMm: integer("thickness_mm"),
+  // Dimensiones en pulgadas decimales; se muestran y se introducen como
+  // fracciones de carpintero (ej. 1 3/4″) — ver parseInches/formatInches.
+  lengthIn: real("length_in"),
+  widthIn: real("width_in"),
+  thicknessIn: real("thickness_in"),
   moistureState: moistureStateEnum("moisture_state"),
   location: text("location"),
   tags: text("tags").array().notNull().default([]),
