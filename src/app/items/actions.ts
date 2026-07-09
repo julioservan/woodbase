@@ -5,9 +5,7 @@ import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { woodItems, type NewWoodItem } from "@/lib/db/schema";
-import { parseInches } from "@/lib/utils";
-
-const MOISTURE_STATES = ["verde", "secando", "seco"] as const;
+import { CUT_TYPES, parseInches, type CutType } from "@/lib/utils";
 
 function parseItemForm(formData: FormData): Omit<NewWoodItem, "id"> {
   const str = (key: string): string | null => {
@@ -27,11 +25,9 @@ function parseItemForm(formData: FormData): Omit<NewWoodItem, "id"> {
   const name = str("name");
   if (!name) throw new Error("El nombre es obligatorio");
 
-  const moistureRaw = str("moistureState");
-  const moistureState = MOISTURE_STATES.includes(
-    moistureRaw as (typeof MOISTURE_STATES)[number],
-  )
-    ? (moistureRaw as (typeof MOISTURE_STATES)[number])
+  const cutRaw = str("cutType");
+  const cutType = CUT_TYPES.includes(cutRaw as CutType)
+    ? (cutRaw as CutType)
     : null;
 
   const tags = (str("tags") ?? "")
@@ -48,7 +44,7 @@ function parseItemForm(formData: FormData): Omit<NewWoodItem, "id"> {
     lengthIn: inches("lengthIn"),
     widthIn: inches("widthIn"),
     thicknessIn: inches("thicknessIn"),
-    moistureState,
+    cutType,
     location: str("location"),
     tags: Array.from(new Set(tags)),
     photoUrl: str("photoUrl"),

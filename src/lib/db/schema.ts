@@ -11,10 +11,12 @@ import {
 // `projects` (proyectos de carpintería) y `tools` (herramientas), que podrán
 // referenciar wood_items.id como fk.
 
-export const moistureStateEnum = pgEnum("moisture_state", [
-  "verde",
-  "secando",
-  "seco",
+export const cutTypeEnum = pgEnum("cut_type", [
+  "lumber",
+  "live_edge",
+  "cookie",
+  "torneado",
+  "chapa",
 ]);
 
 export const woodItems = pgTable("wood_items", {
@@ -29,7 +31,7 @@ export const woodItems = pgTable("wood_items", {
   lengthIn: real("length_in"),
   widthIn: real("width_in"),
   thicknessIn: real("thickness_in"),
-  moistureState: moistureStateEnum("moisture_state"),
+  cutType: cutTypeEnum("cut_type"),
   location: text("location"),
   tags: text("tags").array().notNull().default([]),
   photoUrl: text("photo_url"),

@@ -1,4 +1,4 @@
-CREATE TYPE "public"."moisture_state" AS ENUM('verde', 'secando', 'seco');--> statement-breakpoint
+CREATE TYPE "public"."cut_type" AS ENUM('lumber', 'live_edge', 'cookie', 'torneado', 'chapa');--> statement-breakpoint
 CREATE TABLE "wood_items" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" text NOT NULL,
@@ -9,7 +9,7 @@ CREATE TABLE "wood_items" (
 	"length_in" real,
 	"width_in" real,
 	"thickness_in" real,
-	"moisture_state" "moisture_state",
+	"cut_type" "cut_type",
 	"location" text,
 	"tags" text[] DEFAULT '{}' NOT NULL,
 	"photo_url" text,

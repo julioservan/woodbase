@@ -5,18 +5,23 @@ import { getDb } from "@/lib/db";
 import { woodItems } from "@/lib/db/schema";
 import { Header } from "@/components/header";
 import { WoodPhoto } from "@/components/wood-photo";
-import { MoistureBadge } from "@/components/ui/badge";
+import { CutBadge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { formatDimensions } from "@/lib/utils";
+import {
+  CUT_LABELS,
+  CUT_TYPES,
+  formatDimensions,
+  type CutType,
+} from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 interface Filters {
   q?: string;
   species?: string;
-  moisture?: string;
+  cut?: string;
   tag?: string;
 }
 
@@ -25,7 +30,7 @@ export default async function HomePage({
 }: {
   searchParams: Promise<Filters>;
 }) {
-  const { q, species, moisture, tag } = await searchParams;
+  const { q, species, cut, tag } = await searchParams;
   const db = getDb();
 
   const conditions = [];
@@ -41,8 +46,8 @@ export default async function HomePage({
     );
   }
   if (species) conditions.push(eq(woodItems.species, species));
-  if (moisture === "verde" || moisture === "secando" || moisture === "seco") {
-    conditions.push(eq(woodItems.moistureState, moisture));
+  if (CUT_TYPES.includes(cut as CutType)) {
+    conditions.push(eq(woodItems.cutType, cut as CutType));
   }
   if (tag) conditions.push(arrayContains(woodItems.tags, [tag]));
 
@@ -65,7 +70,7 @@ export default async function HomePage({
     .map((r) => r.species)
     .filter((s): s is string => !!s);
   const allTags = (tagRows.rows as { tag: string }[]).map((r) => r.tag);
-  const hasFilters = !!(q || species || moisture || tag);
+  const hasFilters = !!(q || species || cut || tag);
 
   return (
     <>
@@ -113,15 +118,17 @@ export default async function HomePage({
               ))}
             </Select>
             <Select
-              name="moisture"
-              defaultValue={moisture ?? ""}
+              name="cut"
+              defaultValue={cut ?? ""}
               className="w-auto min-w-32 flex-1 sm:flex-none"
-              aria-label="Filtrar por estado de humedad"
+              aria-label="Filtrar por tipo de corte"
             >
-              <option value="">Cualquier estado</option>
-              <option value="verde">Verde</option>
-              <option value="secando">Secando</option>
-              <option value="seco">Seco</option>
+              <option value="">Cualquier corte</option>
+              {CUT_TYPES.map((c) => (
+                <option key={c} value={c}>
+                  {CUT_LABELS[c]}
+                </option>
+              ))}
             </Select>
             <Select
               name="tag"
@@ -203,9 +210,7 @@ export default async function HomePage({
                         {item.name}
                       </h2>
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                        {item.moistureState && (
-                          <MoistureBadge state={item.moistureState} />
-                        )}
+                        {item.cutType && <CutBadge cut={item.cutType} />}
                         {item.location && (
                           <span className="inline-flex min-w-0 items-center gap-1">
                             <MapPin className="h-3 w-3 shrink-0" />

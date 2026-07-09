@@ -1,5 +1,5 @@
 {
-  "id": "5cd0ef27-f064-43ff-94d7-5556406c08fd",
+  "id": "43f39407-7ed2-41a2-89ff-5a4503d844de",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -65,9 +65,9 @@
           "primaryKey": false,
           "notNull": false
         },
-        "moisture_state": {
-          "name": "moisture_state",
-          "type": "moisture_state",
+        "cut_type": {
+          "name": "cut_type",
+          "type": "cut_type",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": false
@@ -122,13 +122,15 @@
     }
   },
   "enums": {
-    "public.moisture_state": {
-      "name": "moisture_state",
+    "public.cut_type": {
+      "name": "cut_type",
       "schema": "public",
       "values": [
-        "verde",
-        "secando",
-        "seco"
+        "lumber",
+        "live_edge",
+        "cookie",
+        "torneado",
+        "chapa"
       ]
     }
   },

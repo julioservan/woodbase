@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { Camera, Loader2, Sparkles, X } from "lucide-react";
 import type { WoodItem } from "@/lib/db/schema";
-import { formatInches } from "@/lib/utils";
+import { CUT_LABELS, CUT_TYPES, formatInches } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -258,16 +258,18 @@ export function ItemForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="moistureState">Estado de humedad</Label>
+            <Label htmlFor="cutType">Tipo de corte</Label>
             <Select
-              id="moistureState"
-              name="moistureState"
-              defaultValue={item?.moistureState ?? ""}
+              id="cutType"
+              name="cutType"
+              defaultValue={item?.cutType ?? ""}
             >
               <option value="">Sin especificar</option>
-              <option value="verde">Verde</option>
-              <option value="secando">Secando</option>
-              <option value="seco">Seco</option>
+              {CUT_TYPES.map((cut) => (
+                <option key={cut} value={cut}>
+                  {CUT_LABELS[cut]}
+                </option>
+              ))}
             </Select>
           </div>
 

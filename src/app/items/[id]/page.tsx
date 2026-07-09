@@ -8,8 +8,8 @@ import { deleteItem } from "@/app/items/actions";
 import { Header } from "@/components/header";
 import { WoodPhoto } from "@/components/wood-photo";
 import { DeleteItemButton } from "@/components/delete-item-button";
-import { Badge, MoistureBadge } from "@/components/ui/badge";
-import { formatConfidence, formatDimensions } from "@/lib/utils";
+import { Badge, CutBadge } from "@/components/ui/badge";
+import { boardFeet, formatConfidence, formatDimensions } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +52,7 @@ export default async function ItemDetailPage({
     item.thicknessIn,
   );
   const confidence = formatConfidence(item.speciesConfidence);
+  const bf = boardFeet(item.lengthIn, item.widthIn, item.thicknessIn);
   const deleteThisItem = deleteItem.bind(null, item.id);
 
   return (
@@ -116,12 +117,13 @@ export default async function ItemDetailPage({
                   "—"
                 )}
               </SpecRow>
-              <SpecRow label="Estado">
-                {item.moistureState ? (
-                  <MoistureBadge state={item.moistureState} />
-                ) : (
-                  "—"
-                )}
+              {bf != null && (
+                <SpecRow label="Pies tablares">
+                  <span className="tabular-nums">{bf} BF</span>
+                </SpecRow>
+              )}
+              <SpecRow label="Tipo de corte">
+                {item.cutType ? <CutBadge cut={item.cutType} /> : "—"}
               </SpecRow>
               <SpecRow label="Ubicación">{item.location ?? "—"}</SpecRow>
               <SpecRow label="Añadida">

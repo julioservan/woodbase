@@ -1,5 +1,5 @@
 import * as React from "react";
-import { cn } from "@/lib/utils";
+import { cn, CUT_LABELS, type CutType } from "@/lib/utils";
 
 type Variant = "default" | "secondary" | "outline";
 
@@ -26,32 +26,21 @@ export function Badge({
   );
 }
 
-const MOISTURE_META: Record<
-  "verde" | "secando" | "seco",
-  { label: string; dot: string }
-> = {
-  verde: { label: "Verde", dot: "bg-emerald-500" },
-  secando: { label: "Secando", dot: "bg-amber" },
-  seco: { label: "Seco", dot: "bg-sky-600" },
-};
-
-export function MoistureBadge({
-  state,
+export function CutBadge({
+  cut,
   className,
 }: {
-  state: "verde" | "secando" | "seco";
+  cut: CutType;
   className?: string;
 }) {
-  const meta = MOISTURE_META[state];
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-0.5 text-xs font-medium text-foreground/80",
+        "inline-flex items-center rounded-full border border-border bg-card px-2.5 py-0.5 text-xs font-medium text-foreground/80",
         className,
       )}
     >
-      <span className={cn("h-1.5 w-1.5 rounded-full", meta.dot)} />
-      {meta.label}
+      {CUT_LABELS[cut]}
     </span>
   );
 }

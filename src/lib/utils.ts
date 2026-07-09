@@ -67,3 +67,34 @@ export function formatConfidence(confidence: number | null): string | null {
   if (confidence == null) return null;
   return `${Math.round(confidence * 100)}%`;
 }
+
+export const CUT_TYPES = [
+  "lumber",
+  "live_edge",
+  "cookie",
+  "torneado",
+  "chapa",
+] as const;
+
+export type CutType = (typeof CUT_TYPES)[number];
+
+export const CUT_LABELS: Record<CutType, string> = {
+  lumber: "Lumber",
+  live_edge: "Live edge",
+  cookie: "Cookie",
+  torneado: "Torneado",
+  chapa: "Chapa",
+};
+
+/**
+ * Pies tablares (board feet) de una pieza: L × A × G (pulgadas) / 144.
+ */
+export function boardFeet(
+  lengthIn: number | null,
+  widthIn: number | null,
+  thicknessIn: number | null,
+): number | null {
+  if (lengthIn == null || widthIn == null || thicknessIn == null) return null;
+  const bf = (lengthIn * widthIn * thicknessIn) / 144;
+  return Math.round(bf * 100) / 100;
+}
