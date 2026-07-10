@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Camera, Loader2, Sparkles, X } from "lucide-react";
+import { Camera, Loader2, RotateCw, Sparkles, X } from "lucide-react";
 import type { WoodItem } from "@/lib/db/schema";
 import {
   cn,
@@ -97,6 +97,7 @@ export function ItemForm({
     item?.photoUrl ?? null,
   );
   const [uploading, setUploading] = useState(false);
+  const [rotating, setRotating] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const [species, setSpecies] = useState(item?.species ?? "");
@@ -168,6 +169,28 @@ export function ItemForm({
     }
   }
 
+  async function handleRotate() {
+    if (!photoUrl || rotating) return;
+    setRotating(true);
+    setUploadError(null);
+    try {
+      const res = await fetch("/api/rotate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ photoUrl }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "No se pudo rotar la foto");
+      setPhotoUrl(data.url);
+    } catch (err) {
+      setUploadError(
+        err instanceof Error ? err.message : "No se pudo rotar la foto",
+      );
+    } finally {
+      setRotating(false);
+    }
+  }
+
   function applyAlternative(alt: { species: string; confidence: number }) {
     setSpecies(alt.species);
     setCustomSpecies(!SPECIES_OPTIONS.includes(alt.species));
@@ -197,6 +220,20 @@ export function ItemForm({
                   aria-label="Quitar foto"
                 >
                   <X className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRotate}
+                  disabled={rotating}
+                  className="absolute bottom-2 right-2 rounded-full bg-walnut/70 p-1.5 text-walnut-foreground backdrop-blur-sm transition-colors hover:bg-walnut disabled:opacity-60"
+                  aria-label="Rotar foto 90°"
+                  title="Rotar 90°"
+                >
+                  {rotating ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RotateCw className="h-4 w-4" />
+                  )}
                 </button>
               </>
             ) : (
