@@ -183,50 +183,68 @@ export default async function HomePage({
                 item.widthIn,
                 item.thicknessIn,
               );
+              // Los PNG son recortes sin fondo: la pieza se apoya tal cual
+              // sobre la balda. El resto de fotos van enmarcadas.
+              const isCutout = item.photoUrl
+                ?.split("?")[0]
+                .toLowerCase()
+                .endsWith(".png");
               return (
                 <Link
                   key={item.id}
                   href={`/items/${item.id}`}
                   className="group flex flex-col"
                 >
-                  <article className="panel-paper relative z-10 overflow-hidden rounded-xl transition-transform duration-200 group-hover:-translate-y-1.5">
-                    <div className="relative overflow-hidden border-b border-[#c9b28c]">
-                      <WoodPhoto
-                        url={item.photoUrl}
+                  {/* La pieza, de pie sobre su balda. Altura fija para que
+                      todas las baldas de una fila queden alineadas. */}
+                  <div className="relative z-10 flex h-44 items-end justify-center px-1.5 transition-transform duration-200 group-hover:-translate-y-1.5 sm:h-52">
+                    {isCutout ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={item.photoUrl!}
                         alt={item.name}
-                        className="aspect-square w-full"
+                        className="max-h-[96%] max-w-full object-contain [filter:drop-shadow(0_12px_9px_rgba(30,18,8,0.38))_drop-shadow(0_2px_2px_rgba(30,18,8,0.35))]"
                       />
-                      {/* Cristal: sombra interior y filo de luz sobre la foto */}
-                      <div className="pointer-events-none absolute inset-0 shadow-[inset_0_2px_8px_rgba(30,18,8,0.45),inset_0_0_0_1px_rgba(255,255,255,0.25)]" />
-                      <span className="brass absolute right-2 top-2 rounded-md px-2 py-0.5 text-[11px] font-bold">
-                        {item.quantity} {item.unit}
-                      </span>
-                    </div>
-                    <div className="space-y-1.5 p-3.5">
-                      {item.species && (
-                        <p className="eyebrow text-primary">{item.species}</p>
-                      )}
-                      <h2 className="text-letterpress truncate text-[15px] font-semibold leading-snug">
-                        {item.name}
-                      </h2>
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                        {item.cutType && <CutBadge cut={item.cutType} />}
-                        {item.location && (
-                          <span className="inline-flex min-w-0 items-center gap-1">
-                            <MapPin className="h-3 w-3 shrink-0" />
-                            <span className="truncate">{item.location}</span>
-                          </span>
-                        )}
+                    ) : (
+                      <div className="relative mb-1 aspect-square max-h-[92%] w-[88%] overflow-hidden rounded-lg border-[5px] border-[#5a3f28] bg-card shadow-[0_12px_14px_rgba(30,18,8,0.4),0_2px_3px_rgba(30,18,8,0.3)]">
+                        <WoodPhoto
+                          url={item.photoUrl}
+                          alt={item.name}
+                          className="h-full w-full"
+                        />
+                        {/* Cristal: sombra interior y filo de luz sobre la foto */}
+                        <div className="pointer-events-none absolute inset-0 shadow-[inset_0_2px_8px_rgba(30,18,8,0.45),inset_0_0_0_1px_rgba(255,255,255,0.25)]" />
                       </div>
-                      {dimensions && (
-                        <p className="text-xs tabular-nums text-muted-foreground/80">
-                          {dimensions}
-                        </p>
+                    )}
+                    <span className="brass absolute right-1 top-1 rounded-md px-2 py-0.5 text-[11px] font-bold">
+                      {item.quantity} {item.unit}
+                    </span>
+                  </div>
+                  {/* Balda sobre la que descansa la pieza */}
+                  <div className="shelf relative mx-[-5%]" />
+                  {/* Plaquita con los datos, bajo la balda */}
+                  <article className="panel-paper mt-2.5 space-y-1.5 rounded-xl p-3.5">
+                    {item.species && (
+                      <p className="eyebrow text-primary">{item.species}</p>
+                    )}
+                    <h2 className="text-letterpress truncate text-[15px] font-semibold leading-snug">
+                      {item.name}
+                    </h2>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                      {item.cutType && <CutBadge cut={item.cutType} />}
+                      {item.location && (
+                        <span className="inline-flex min-w-0 items-center gap-1">
+                          <MapPin className="h-3 w-3 shrink-0" />
+                          <span className="truncate">{item.location}</span>
+                        </span>
                       )}
                     </div>
+                    {dimensions && (
+                      <p className="text-xs tabular-nums text-muted-foreground/80">
+                        {dimensions}
+                      </p>
+                    )}
                   </article>
-                  {/* Balda sobre la que descansa la pieza */}
-                  <div className="shelf -mt-[3px] mx-[-5%]" />
                 </Link>
               );
             })}
