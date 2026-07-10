@@ -1,16 +1,13 @@
 import Link from "next/link";
 import { and, asc, desc, eq, ilike, or } from "drizzle-orm";
-import { MapPin, Search } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { getDb } from "@/lib/db";
 import { woodItems } from "@/lib/db/schema";
 import { Header } from "@/components/header";
+import { InventoryFilters } from "@/components/inventory-filters";
 import { WoodPhoto } from "@/components/wood-photo";
 import { CutBadge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
 import {
-  CUT_LABELS,
   CUT_TYPES,
   formatDimensions,
   sizeScale,
@@ -98,86 +95,15 @@ export default async function HomePage({
           )}
         </div>
 
-        {/* Buscador y filtros */}
-        <form
-          method="get"
-          className="panel-paper mb-8 space-y-3 rounded-2xl p-3 sm:p-4"
-        >
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              type="search"
-              name="q"
-              defaultValue={q ?? ""}
-              placeholder="Buscar por nombre, especie, ubicación o notas..."
-              className="h-10 pl-9"
-            />
-          </div>
-          <div className="grid grid-cols-2 items-center gap-2 sm:flex sm:flex-wrap">
-            <Select
-              name="species"
-              defaultValue={species ?? ""}
-              className="sm:w-auto sm:min-w-32"
-              aria-label="Filtrar por especie"
-            >
-              <option value="">Todas las especies</option>
-              {allSpecies.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </Select>
-            <Select
-              name="cut"
-              defaultValue={cut ?? ""}
-              className="sm:w-auto sm:min-w-32"
-              aria-label="Filtrar por tipo de corte"
-            >
-              <option value="">Cualquier corte</option>
-              {CUT_TYPES.map((c) => (
-                <option key={c} value={c}>
-                  {CUT_LABELS[c]}
-                </option>
-              ))}
-            </Select>
-            <Select
-              name="scrap"
-              defaultValue={scrap ?? ""}
-              className="sm:w-auto sm:min-w-32"
-              aria-label="Filtrar scraps"
-            >
-              <option value="">Todo el taller</option>
-              <option value="only">Solo scraps</option>
-              <option value="hide">Sin scraps</option>
-            </Select>
-            <Select
-              name="sort"
-              defaultValue={sort ?? ""}
-              className="sm:w-auto sm:min-w-32"
-              aria-label="Ordenar"
-            >
-              <option value="">Más recientes</option>
-              <option value="tipo">Por tipo de corte</option>
-              <option value="especie">Por especie</option>
-              <option value="nombre">Por nombre</option>
-            </Select>
-            <Button
-              type="submit"
-              size="sm"
-              className="col-span-2 h-10 w-full rounded-lg px-4 sm:col-span-1 sm:h-8 sm:w-auto"
-            >
-              Filtrar
-            </Button>
-            {hasFilters && (
-              <Link
-                href="/"
-                className="col-span-2 justify-self-center text-sm text-muted-foreground underline-offset-2 hover:underline sm:col-span-1"
-              >
-                Limpiar
-              </Link>
-            )}
-          </div>
-        </form>
+        {/* Buscador y filtros: se aplican al cambiar, sin botón */}
+        <InventoryFilters
+          q={q}
+          species={species}
+          cut={cut}
+          scrap={scrap}
+          sort={sort}
+          allSpecies={allSpecies}
+        />
 
         {/* Grid de piezas, cada una apoyada en su balda */}
         {items.length === 0 ? (
