@@ -189,10 +189,31 @@ export default async function HomePage({
                 ?.split("?")[0]
                 .toLowerCase()
                 .endsWith(".png");
-              // Con 2+ unidades se apilan copias detrás (máximo 2 copias).
-              const stackCopies = isCutout
-                ? Math.min(Math.max(Math.floor(item.quantity), 1), 3) - 1
-                : 0;
+              // Con 2+ unidades se apilan tantas copias como piezas haya
+              // (tope visual: 8). Solo con unidades contables — con volumen
+              // (pies tablares...) la cantidad no es un número de tablas.
+              const isCountable = /tabl[oó]n|pieza|unidad|bloque|palo/i.test(
+                item.unit,
+              );
+              const stackCopies =
+                isCutout && isCountable
+                  ? Math.min(Math.max(Math.floor(item.quantity), 1), 8) - 1
+                  : 0;
+              // Parámetros de cada copia: se reparten a ambos lados, cada
+              // nivel más desplazado, más girado y más oscuro; el orden se
+              // invierte para que las más profundas se pinten primero.
+              const stack = Array.from({ length: stackCopies }, (_, i) => {
+                const level = Math.floor(i / 2) + 1;
+                const side = i % 2 === 0 ? 1 : -1;
+                return {
+                  key: i,
+                  tx: side * level * 8,
+                  txHover: side * level * 17,
+                  rot: side * level * 1.7,
+                  rotHover: side * level * 4,
+                  brightness: Math.max(1 - level * 0.13, 0.45),
+                };
+              }).reverse();
               return (
                 <Link
                   key={item.id}
@@ -205,18 +226,23 @@ export default async function HomePage({
                     {isCutout ? (
                       <div className="relative flex h-full max-w-full items-end justify-center">
                         {/* Copias apiladas detrás; al hacer hover se abren */}
-                        {Array.from({ length: stackCopies }).map((_, i) => (
+                        {stack.map((c) => (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
-                            key={i}
+                            key={c.key}
                             src={item.photoUrl!}
                             alt=""
                             aria-hidden
-                            className={
-                              i === 0
-                                ? "absolute bottom-0 max-h-[96%] max-w-full origin-bottom translate-x-[9px] rotate-2 object-contain brightness-[0.78] transition-transform duration-200 group-hover:translate-x-[22px] group-hover:rotate-6"
-                                : "absolute bottom-0 max-h-[96%] max-w-full origin-bottom -translate-x-[9px] -rotate-2 object-contain brightness-[0.62] transition-transform duration-200 group-hover:-translate-x-[22px] group-hover:-rotate-6"
+                            style={
+                              {
+                                "--tx": `${c.tx}px`,
+                                "--tx-hover": `${c.txHover}px`,
+                                "--rot": `${c.rot}deg`,
+                                "--rot-hover": `${c.rotHover}deg`,
+                                filter: `brightness(${c.brightness})`,
+                              } as React.CSSProperties
                             }
+                            className="absolute bottom-0 max-h-[96%] max-w-full origin-bottom translate-x-[var(--tx)] rotate-[var(--rot)] object-contain transition-transform duration-200 group-hover:translate-x-[var(--tx-hover)] group-hover:rotate-[var(--rot-hover)]"
                           />
                         ))}
                         {/* eslint-disable-next-line @next/next/no-img-element */}
