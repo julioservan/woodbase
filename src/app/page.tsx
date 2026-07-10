@@ -267,9 +267,12 @@ export default async function HomePage({
                         <div className="pointer-events-none absolute inset-0 shadow-[inset_0_2px_8px_rgba(30,18,8,0.45),inset_0_0_0_1px_rgba(255,255,255,0.25)]" />
                       </div>
                     )}
-                    <span className="brass absolute right-1 top-1 z-20 rounded-md px-2 py-0.5 text-[11px] font-bold">
-                      {item.quantity} {item.unit}
-                    </span>
+                    {/* Con una sola unidad la chapa no aporta nada */}
+                    {item.quantity !== 1 && (
+                      <span className="brass absolute right-1 top-1 z-20 rounded-md px-2 py-0.5 text-[11px] font-bold">
+                        {item.quantity} {item.unit}
+                      </span>
+                    )}
                   </div>
                   {/* Balda sobre la que descansa la pieza: su canto tapa el
                       borde inferior de la madera para que parezca apoyada */}
