@@ -3,7 +3,13 @@
 import { useState, useTransition } from "react";
 import { Camera, Loader2, Sparkles, X } from "lucide-react";
 import type { WoodItem } from "@/lib/db/schema";
-import { CUT_LABELS, CUT_TYPES, formatInches } from "@/lib/utils";
+import {
+  cn,
+  CUT_LABELS,
+  CUT_TYPES,
+  DISPLAY_SIZES,
+  formatInches,
+} from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -106,6 +112,8 @@ export function ItemForm({
     null,
   );
   const [identifyError, setIdentifyError] = useState<string | null>(null);
+
+  const [displaySize, setDisplaySize] = useState(item?.displaySize ?? "xl");
 
   const [isPending, startTransition] = useTransition();
 
@@ -235,6 +243,32 @@ export function ItemForm({
               La IA analiza la foto y sugiere la especie. Es una estimación
               orientativa: revísala y corrígela si hace falta antes de guardar.
             </p>
+            <div className="space-y-1.5 pt-1">
+              <Label>Tamaño en la estantería</Label>
+              <div className="flex gap-1.5">
+                {DISPLAY_SIZES.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setDisplaySize(s)}
+                    aria-pressed={displaySize === s}
+                    className={cn(
+                      "h-10 w-12 rounded-lg border text-sm font-bold uppercase transition-all sm:h-9 sm:w-11",
+                      displaySize === s
+                        ? "brass"
+                        : "border-[#b09468] bg-gradient-to-b from-[#fffdf5] to-[#efe4c9] text-foreground/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_2px_rgba(43,30,19,0.3)] hover:to-[#f6eeda]",
+                    )}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Cómo de grande se dibuja la pieza en su balda (XL = tamaño
+                actual).
+              </p>
+              <input type="hidden" name="displaySize" value={displaySize} />
+            </div>
             {uploadError && (
               <p className="text-sm text-destructive">{uploadError}</p>
             )}

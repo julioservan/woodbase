@@ -36,6 +36,8 @@ export const woodItems = pgTable("wood_items", {
   cutType: cutTypeEnum("cut_type"),
   // Retal/scrap: recorte sobrante de otro proyecto.
   isScrap: boolean("is_scrap").notNull().default(false),
+  // Talla visual (s/m/l/xl): cómo de grande se dibuja en la estantería.
+  displaySize: text("display_size").notNull().default("xl"),
   location: text("location"),
   tags: text("tags").array().notNull().default([]),
   photoUrl: text("photo_url"),

@@ -1,0 +1,1 @@
+ALTER TABLE "wood_items" ADD COLUMN "display_size" text DEFAULT 'xl' NOT NULL;

@@ -5,7 +5,13 @@ import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { woodItems, type NewWoodItem } from "@/lib/db/schema";
-import { CUT_TYPES, parseInches, type CutType } from "@/lib/utils";
+import {
+  CUT_TYPES,
+  DISPLAY_SIZES,
+  parseInches,
+  type CutType,
+  type DisplaySize,
+} from "@/lib/utils";
 
 function parseItemForm(formData: FormData): Omit<NewWoodItem, "id"> {
   const str = (key: string): string | null => {
@@ -46,6 +52,9 @@ function parseItemForm(formData: FormData): Omit<NewWoodItem, "id"> {
     thicknessIn: inches("thicknessIn"),
     cutType,
     isScrap: formData.get("isScrap") === "on",
+    displaySize: DISPLAY_SIZES.includes(str("displaySize") as DisplaySize)
+      ? (str("displaySize") as DisplaySize)
+      : "xl",
     location: str("location"),
     tags: Array.from(new Set(tags)),
     photoUrl: str("photoUrl"),

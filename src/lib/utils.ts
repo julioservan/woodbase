@@ -89,6 +89,25 @@ export const CUT_LABELS: Record<CutType, string> = {
 };
 
 /**
+ * Talla visual de la pieza en la estantería (como tallas de camiseta).
+ * El factor es la fracción de la altura del área de exhibición que ocupa.
+ */
+export const DISPLAY_SIZES = ["s", "m", "l", "xl"] as const;
+
+export type DisplaySize = (typeof DISPLAY_SIZES)[number];
+
+export const SIZE_SCALE: Record<DisplaySize, number> = {
+  s: 0.45,
+  m: 0.62,
+  l: 0.8,
+  xl: 0.96,
+};
+
+export function sizeScale(size: string | null | undefined): number {
+  return SIZE_SCALE[(size ?? "xl") as DisplaySize] ?? SIZE_SCALE.xl;
+}
+
+/**
  * Pies tablares (board feet) de una pieza: L × A × G (pulgadas) / 144.
  */
 export function boardFeet(

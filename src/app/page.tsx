@@ -13,6 +13,7 @@ import {
   CUT_LABELS,
   CUT_TYPES,
   formatDimensions,
+  sizeScale,
   type CutType,
 } from "@/lib/utils";
 
@@ -201,6 +202,8 @@ export default async function HomePage({
               // Parámetros de cada copia: se reparten a ambos lados, cada
               // nivel más desplazado, más girado y más oscuro; el orden se
               // invierte para que las más profundas se pinten primero.
+              // Talla visual: fracción de la altura de la balda que ocupa.
+              const scale = sizeScale(item.displaySize);
               const stack = Array.from({ length: stackCopies }, (_, i) => {
                 const level = Math.floor(i / 2) + 1;
                 const side = i % 2 === 0 ? 1 : -1;
@@ -239,20 +242,25 @@ export default async function HomePage({
                                 "--rot": `${c.rot}deg`,
                                 "--rot-hover": `${c.rotHover}deg`,
                                 filter: `brightness(${c.brightness})`,
+                                maxHeight: `${scale * 100}%`,
                               } as React.CSSProperties
                             }
-                            className="absolute bottom-0 max-h-[96%] max-w-full origin-bottom translate-x-[var(--tx)] rotate-[var(--rot)] object-contain transition-transform duration-200 group-hover:translate-x-[var(--tx-hover)] group-hover:rotate-[var(--rot-hover)]"
+                            className="absolute bottom-0 max-w-full origin-bottom translate-x-[var(--tx)] rotate-[var(--rot)] object-contain transition-transform duration-200 group-hover:translate-x-[var(--tx-hover)] group-hover:rotate-[var(--rot-hover)]"
                           />
                         ))}
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={item.photoUrl!}
                           alt={item.name}
-                          className="relative z-10 max-h-[96%] max-w-full object-contain [filter:drop-shadow(0_12px_9px_rgba(30,18,8,0.38))_drop-shadow(0_2px_2px_rgba(30,18,8,0.35))]"
+                          style={{ maxHeight: `${scale * 100}%` }}
+                          className="relative z-10 max-w-full object-contain [filter:drop-shadow(0_12px_9px_rgba(30,18,8,0.38))_drop-shadow(0_2px_2px_rgba(30,18,8,0.35))]"
                         />
                       </div>
                     ) : (
-                      <div className="relative aspect-square max-h-[92%] w-[88%] overflow-hidden rounded-lg border-[5px] border-[#5a3f28] bg-card shadow-[0_12px_14px_rgba(30,18,8,0.4),0_2px_3px_rgba(30,18,8,0.3)]">
+                      <div
+                        style={{ height: `${Math.round(95.8 * scale)}%` }}
+                        className="relative aspect-square max-w-full overflow-hidden rounded-lg border-[5px] border-[#5a3f28] bg-card shadow-[0_12px_14px_rgba(30,18,8,0.4),0_2px_3px_rgba(30,18,8,0.3)]"
+                      >
                         <WoodPhoto
                           url={item.photoUrl}
                           alt={item.name}

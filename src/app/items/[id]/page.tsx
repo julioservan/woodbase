@@ -9,7 +9,12 @@ import { Header } from "@/components/header";
 import { WoodPhoto } from "@/components/wood-photo";
 import { DeleteItemButton } from "@/components/delete-item-button";
 import { Badge, CutBadge } from "@/components/ui/badge";
-import { boardFeet, formatConfidence, formatDimensions } from "@/lib/utils";
+import {
+  boardFeet,
+  formatConfidence,
+  formatDimensions,
+  sizeScale,
+} from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -67,6 +72,8 @@ export default async function ItemDetailPage({
     isCutout && isCountable
       ? Math.min(Math.max(Math.floor(item.quantity), 1), 8) - 1
       : 0;
+  // Talla visual: fracción de la altura de la balda que ocupa.
+  const scale = sizeScale(item.displaySize);
   const stack = Array.from({ length: stackCopies }, (_, i) => {
     const level = Math.floor(i / 2) + 1;
     const side = i % 2 === 0 ? 1 : -1;
@@ -108,20 +115,25 @@ export default async function ItemDetailPage({
                           "--tx": `${c.tx}px`,
                           "--rot": `${c.rot}deg`,
                           filter: `brightness(${c.brightness})`,
+                          maxHeight: `${scale * 100}%`,
                         } as React.CSSProperties
                       }
-                      className="absolute bottom-0 max-h-[96%] max-w-full origin-bottom translate-x-[var(--tx)] rotate-[var(--rot)] object-contain"
+                      className="absolute bottom-0 max-w-full origin-bottom translate-x-[var(--tx)] rotate-[var(--rot)] object-contain"
                     />
                   ))}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={item.photoUrl!}
                     alt={item.name}
-                    className="relative z-10 max-h-[96%] max-w-full object-contain [filter:drop-shadow(0_14px_11px_rgba(30,18,8,0.38))_drop-shadow(0_2px_2px_rgba(30,18,8,0.35))]"
+                    style={{ maxHeight: `${scale * 100}%` }}
+                    className="relative z-10 max-w-full object-contain [filter:drop-shadow(0_14px_11px_rgba(30,18,8,0.38))_drop-shadow(0_2px_2px_rgba(30,18,8,0.35))]"
                   />
                 </div>
               ) : (
-                <div className="relative aspect-square max-h-[92%] w-[82%] overflow-hidden rounded-lg border-[6px] border-[#5a3f28] bg-card shadow-[0_14px_18px_rgba(30,18,8,0.4),0_2px_3px_rgba(30,18,8,0.3)]">
+                <div
+                  style={{ height: `${Math.round(95.8 * scale)}%` }}
+                  className="relative aspect-square max-w-full overflow-hidden rounded-lg border-[6px] border-[#5a3f28] bg-card shadow-[0_14px_18px_rgba(30,18,8,0.4),0_2px_3px_rgba(30,18,8,0.3)]"
+                >
                   <WoodPhoto
                     url={item.photoUrl}
                     alt={item.name}
