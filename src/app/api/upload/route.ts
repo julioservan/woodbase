@@ -5,16 +5,13 @@ export const runtime = "nodejs";
 
 const MAX_SIZE_BYTES = 8 * 1024 * 1024; // 8 MB
 
-// La foto va cliente → esta función → Vercel Blob. El token
-// BLOB_READ_WRITE_TOKEN vive solo en el servidor. Un token pegado a mano en
-// Vercel puede traer saltos de línea, espacios o comillas (rompen la cabecera
-// Authorization con "invalid header value"), así que lo saneamos siempre.
+// La foto va cliente → esta función → Vercel Blob. En Vercel el SDK v2 se
+// autentica solo vía OIDC + BLOB_STORE_ID (los inyecta la plataforma), así
+// que solo usamos BLOB_READ_WRITE_TOKEN si contiene un token con pinta de
+// válido; un valor corrupto (pegado a mano con saltos de línea) se ignora.
 function blobToken() {
   const raw = process.env.BLOB_READ_WRITE_TOKEN ?? "";
-  // Si se pegó la línea entera del .env.local (con nombre, comillas, saltos
-  // de línea...), extraemos solo el token real.
-  const match = raw.match(/vercel_blob_rw_[A-Za-z0-9_]+/);
-  return match?.[0] ?? (raw.replace(/["'\s]/g, "") || undefined);
+  return raw.match(/vercel_blob_rw_[A-Za-z0-9_]+/)?.[0];
 }
 
 export async function POST(request: Request) {

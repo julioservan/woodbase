@@ -15,7 +15,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "latest",
     "@neondatabase/serverless": "^1.0.0",
-    "@vercel/blob": "^1.1.0",
+    "@vercel/blob": "^2.6.1",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.44.0",
     "lucide-react": "^0.525.0",
