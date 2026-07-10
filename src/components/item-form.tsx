@@ -67,9 +67,18 @@ export function ItemForm({
     setUploading(true);
     setUploadError(null);
     try {
-      const blob = await upload(`wood/${file.name}`, file, {
+      // Nombre limpio propio: los nombres de fotos de móvil (espacios,
+      // acentos, .HEIC) pueden romper la petición de subida.
+      const extFromType = file.type.split("/")[1]?.replace("jpeg", "jpg");
+      const extFromName = file.name.split(".").pop()?.toLowerCase();
+      const ext = (extFromType || extFromName || "jpg").replace(
+        /[^a-z0-9]/g,
+        "",
+      );
+      const blob = await upload(`wood/${crypto.randomUUID()}.${ext}`, file, {
         access: "public",
         handleUploadUrl: "/api/upload",
+        contentType: file.type || undefined,
       });
       setPhotoUrl(blob.url);
       setIdentifyResult(null);
