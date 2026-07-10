@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, Copy, Pencil } from "lucide-react";
 import { getDb } from "@/lib/db";
 import { woodItems } from "@/lib/db/schema";
-import { deleteItem } from "@/app/items/actions";
+import { deleteItem, duplicateItem } from "@/app/items/actions";
 import { Header } from "@/components/header";
 import { WoodPhoto } from "@/components/wood-photo";
 import { DeleteItemButton } from "@/components/delete-item-button";
@@ -59,6 +59,7 @@ export default async function ItemDetailPage({
   const confidence = formatConfidence(item.speciesConfidence);
   const bf = boardFeet(item.lengthIn, item.widthIn, item.thicknessIn);
   const deleteThisItem = deleteItem.bind(null, item.id);
+  const duplicateThisItem = duplicateItem.bind(null, item.id);
 
   // Misma lógica de exhibición que el inventario: los PNG (recortes sin
   // fondo) se apoyan tal cual sobre la balda, el resto va enmarcado.
@@ -228,6 +229,14 @@ export default async function ItemDetailPage({
               >
                 <Pencil className="h-3.5 w-3.5" /> Editar
               </Link>
+              <form action={duplicateThisItem}>
+                <button
+                  type="submit"
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#b09468] bg-gradient-to-b from-[#fffdf5] to-[#efe4c9] px-4 text-sm font-semibold text-foreground [text-shadow:0_1px_0_rgba(255,255,255,0.7)] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_2px_rgba(43,30,19,0.3)] transition-all hover:to-[#f6eeda] active:shadow-[inset_0_2px_5px_rgba(90,70,40,0.3)]"
+                >
+                  <Copy className="h-3.5 w-3.5" /> Duplicar
+                </button>
+              </form>
               <DeleteItemButton action={deleteThisItem} />
             </div>
           </div>

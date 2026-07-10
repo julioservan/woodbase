@@ -16,7 +16,9 @@ export function DeleteItemButton({
       type="button"
       variant="destructive"
       size="sm"
-      className="h-9 rounded-lg px-4 text-sm"
+      aria-label="Borrar pieza"
+      title="Borrar pieza"
+      className="h-9 w-9 rounded-lg p-0"
       disabled={isPending}
       onClick={() => {
         if (confirm("¿Seguro que quieres borrar esta pieza? No se puede deshacer.")) {
@@ -29,7 +31,6 @@ export function DeleteItemButton({
       ) : (
         <Trash2 className="h-4 w-4" />
       )}
-      Borrar
     </Button>
   );
 }
