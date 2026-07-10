@@ -197,7 +197,7 @@ export default async function HomePage({
                 >
                   {/* La pieza, de pie sobre su balda. Altura fija para que
                       todas las baldas de una fila queden alineadas. */}
-                  <div className="relative z-10 flex h-44 items-end justify-center px-1.5 transition-transform duration-200 group-hover:-translate-y-1.5 sm:h-52">
+                  <div className="relative z-10 -mb-[12px] flex h-44 items-end justify-center px-1.5 transition-transform duration-200 group-hover:-translate-y-1.5 sm:h-52">
                     {isCutout ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -206,7 +206,7 @@ export default async function HomePage({
                         className="max-h-[96%] max-w-full object-contain [filter:drop-shadow(0_12px_9px_rgba(30,18,8,0.38))_drop-shadow(0_2px_2px_rgba(30,18,8,0.35))]"
                       />
                     ) : (
-                      <div className="relative mb-1 aspect-square max-h-[92%] w-[88%] overflow-hidden rounded-lg border-[5px] border-[#5a3f28] bg-card shadow-[0_12px_14px_rgba(30,18,8,0.4),0_2px_3px_rgba(30,18,8,0.3)]">
+                      <div className="relative aspect-square max-h-[92%] w-[88%] overflow-hidden rounded-lg border-[5px] border-[#5a3f28] bg-card shadow-[0_12px_14px_rgba(30,18,8,0.4),0_2px_3px_rgba(30,18,8,0.3)]">
                         <WoodPhoto
                           url={item.photoUrl}
                           alt={item.name}
@@ -220,8 +220,9 @@ export default async function HomePage({
                       {item.quantity} {item.unit}
                     </span>
                   </div>
-                  {/* Balda sobre la que descansa la pieza */}
-                  <div className="shelf relative mx-[-5%]" />
+                  {/* Balda sobre la que descansa la pieza: su canto tapa el
+                      borde inferior de la madera para que parezca apoyada */}
+                  <div className="shelf relative z-20 mx-[-5%]" />
                   {/* Plaquita con los datos, bajo la balda */}
                   <article className="panel-paper mt-2.5 space-y-1.5 rounded-xl p-3.5">
                     {item.species && (
