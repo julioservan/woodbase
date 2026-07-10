@@ -155,10 +155,10 @@ export function ItemForm({
                     </span>
                   </>
                 )}
+                {/* Sin `capture`: iOS ofrece elegir de la galería o hacer foto */}
                 <input
                   type="file"
                   accept="image/*"
-                  capture="environment"
                   className="sr-only"
                   onChange={handleFileChange}
                   disabled={uploading}
