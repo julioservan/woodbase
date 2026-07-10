@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { put } from "@vercel/blob";
+import sharp from "sharp";
 
 export const runtime = "nodejs";
 
@@ -40,8 +41,21 @@ export async function POST(request: Request) {
   const extFromType = file.type.split("/")[1]?.replace("jpeg", "jpg");
   const ext = (extFromType || "jpg").replace(/[^a-z0-9]/g, "");
 
+  // Los PNG (recortes sin fondo) suelen traer margen transparente alrededor;
+  // lo recortamos para que la pieza se apoye exactamente sobre la balda.
+  let body: File | Buffer = file;
+  if (file.type === "image/png") {
+    try {
+      const original = Buffer.from(await file.arrayBuffer());
+      body = await sharp(original).trim().png().toBuffer();
+    } catch (error) {
+      console.error("No se pudo recortar el PNG, se sube tal cual:", error);
+      body = file;
+    }
+  }
+
   try {
-    const blob = await put(`wood/${crypto.randomUUID()}.${ext}`, file, {
+    const blob = await put(`wood/${crypto.randomUUID()}.${ext}`, body, {
       access: "public",
       contentType: file.type,
       token: blobToken(),
