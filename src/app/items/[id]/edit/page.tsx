@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Copy } from "lucide-react";
 import { getDb } from "@/lib/db";
 import { woodItems } from "@/lib/db/schema";
-import { updateItem } from "@/app/items/actions";
+import { duplicateItem, updateItem } from "@/app/items/actions";
 import { Header } from "@/components/header";
 import { ItemForm } from "@/components/item-form";
 
@@ -25,6 +25,7 @@ export default async function EditItemPage({
   if (!item) notFound();
 
   const updateThisItem = updateItem.bind(null, item.id);
+  const duplicateThisItem = duplicateItem.bind(null, item.id);
 
   return (
     <>
@@ -36,9 +37,20 @@ export default async function EditItemPage({
         >
           <ArrowLeft className="h-4 w-4" /> Volver a la pieza
         </Link>
-        <h1 className="text-letterpress mb-6 font-display text-2xl font-semibold tracking-tight">
-          Editar «{item.name}»
-        </h1>
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-letterpress font-display text-2xl font-semibold tracking-tight">
+            Editar «{item.name}»
+          </h1>
+          {/* Duplicar: crea una copia y abre su edición para ajustarla */}
+          <form action={duplicateThisItem}>
+            <button
+              type="submit"
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#b09468] bg-gradient-to-b from-[#fffdf5] to-[#efe4c9] px-3.5 text-sm font-semibold text-foreground [text-shadow:0_1px_0_rgba(255,255,255,0.7)] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_2px_rgba(43,30,19,0.3)] transition-all hover:to-[#f6eeda] active:shadow-[inset_0_2px_5px_rgba(90,70,40,0.3)]"
+            >
+              <Copy className="h-3.5 w-3.5" /> Duplicar
+            </button>
+          </form>
+        </div>
         <ItemForm
           item={item}
           action={updateThisItem}

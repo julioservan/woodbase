@@ -85,6 +85,40 @@ export async function updateItem(id: string, formData: FormData) {
   redirect(`/items/${id}`);
 }
 
+export async function duplicateItem(id: string) {
+  const db = getDb();
+  const [item] = await db
+    .select()
+    .from(woodItems)
+    .where(eq(woodItems.id, id))
+    .limit(1);
+  if (!item) throw new Error("Pieza no encontrada");
+
+  const [copy] = await db
+    .insert(woodItems)
+    .values({
+      name: `${item.name} (copia)`,
+      species: item.species,
+      speciesConfidence: item.speciesConfidence,
+      quantity: item.quantity,
+      unit: item.unit,
+      lengthIn: item.lengthIn,
+      widthIn: item.widthIn,
+      thicknessIn: item.thicknessIn,
+      cutType: item.cutType,
+      isScrap: item.isScrap,
+      displaySize: item.displaySize,
+      location: item.location,
+      tags: item.tags,
+      photoUrl: item.photoUrl,
+      notes: item.notes,
+    })
+    .returning();
+  revalidatePath("/");
+  // A la edición de la copia, para ajustar lo que cambie (nombre, medidas...)
+  redirect(`/items/${copy.id}/edit`);
+}
+
 export async function deleteItem(id: string) {
   await getDb().delete(woodItems).where(eq(woodItems.id, id));
   revalidatePath("/");
