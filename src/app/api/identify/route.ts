@@ -21,7 +21,7 @@ const IDENTIFY_SCHEMA = {
     species: {
       type: "string",
       description:
-        "Especie de madera más probable, nombre común en español (ej. roble, nogal, pino)",
+        "Especie más probable: nombre común en inglés y en español entre paréntesis, en minúsculas (ej. \"walnut (nogal)\", \"maple (arce)\"). Si el nombre es igual en ambos idiomas, escríbelo una sola vez (ej. \"sapele\")",
     },
     scientific_name: {
       type: "string",
@@ -56,7 +56,7 @@ const IDENTIFY_SCHEMA = {
 
 const PROMPT = `Identifica la especie de madera visible en esta imagen.
 
-Fíjate en el color, la figura del veteado, los poros/anillos de crecimiento, los radios medulares y la textura. Devuelve la especie más probable (nombre común en español), su nombre científico, una confianza entre 0 y 1, 2-3 alternativas plausibles con su confianza, y una breve explicación de los rasgos en los que te basas.
+Fíjate en el color, la figura del veteado, los poros/anillos de crecimiento, los radios medulares y la textura. Devuelve la especie más probable (nombre común en inglés con el español entre paréntesis, ej. "walnut (nogal)"; si coincide en ambos idiomas, una sola vez), su nombre científico, una confianza entre 0 y 1, 2-3 alternativas plausibles con su confianza (mismo formato de nombre), y una breve explicación de los rasgos en los que te basas.
 
 Ten en cuenta que la identificación por foto es orientativa: sé honesto con la confianza (usa valores bajos si la foto es ambigua, está acabada con barniz/tinte, o los rasgos no son concluyentes).`;
 

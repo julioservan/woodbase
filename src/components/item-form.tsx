@@ -315,7 +315,7 @@ export function ItemForm({
               className="h-4 w-4 accent-primary"
             />
             <span className="text-sm font-medium">
-              Es un retal{" "}
+              Es un scrap{" "}
               <span className="font-normal text-muted-foreground">
                 (recorte sobrante de otro proyecto)
               </span>

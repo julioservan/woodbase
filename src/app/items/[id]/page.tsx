@@ -95,7 +95,7 @@ export default async function ItemDetailPage({
                 {item.name}
                 {item.isScrap && (
                   <span className="ml-3 inline-block -translate-y-1 rotate-[7deg] rounded-[3px] border-2 border-[#a83c2a]/65 px-1.5 py-px align-middle font-sans text-[11px] font-black uppercase tracking-[0.12em] text-[#a83c2a]/75">
-                    Retal
+                    Scrap
                   </span>
                 )}
               </h1>

@@ -131,11 +131,11 @@ export default async function HomePage({
               name="scrap"
               defaultValue={scrap ?? ""}
               className="sm:w-auto sm:min-w-32"
-              aria-label="Filtrar retales"
+              aria-label="Filtrar scraps"
             >
               <option value="">Todo el taller</option>
-              <option value="only">Solo retales</option>
-              <option value="hide">Sin retales</option>
+              <option value="only">Solo scraps</option>
+              <option value="hide">Sin scraps</option>
             </Select>
             <Button
               type="submit"
@@ -288,7 +288,7 @@ export default async function HomePage({
                     </span>
                     {item.isScrap && (
                       <span className="absolute right-2.5 top-2.5 rotate-[7deg] rounded-[3px] border-2 border-[#a83c2a]/65 px-1 py-px text-[9px] font-black uppercase tracking-[0.12em] text-[#a83c2a]/75 [mask-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cfilter id='r'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.5' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.7 0.3'/%3E%3C/filter%3E%3Crect width='60' height='60' filter='url(%23r)'/%3E%3C/svg%3E&quot;)]">
-                        Retal
+                        Scrap
                       </span>
                     )}
                     {item.species && (
