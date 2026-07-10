@@ -139,7 +139,28 @@ export default async function ItemDetailPage({
               <span className="brass absolute left-1/2 top-2 flex h-4 w-4 -translate-x-1/2 items-center justify-center rounded-full">
                 <span className="h-1.5 w-1.5 rounded-full bg-[#4a351d] shadow-[inset_0_1px_1px_rgba(0,0,0,0.6)]" />
               </span>
-              <div className="divide-y divide-[#c9b28c]/60">
+              {/* Cabecera del cartel: especie, nombre y sello de scrap */}
+              <div className="space-y-1 px-4 pb-3 pt-1">
+                {item.species && (
+                  <p className="eyebrow text-primary">
+                    {item.species}
+                    {confidence && (
+                      <span className="ml-2 font-normal normal-case tracking-normal text-muted-foreground">
+                        identificada por IA · {confidence}
+                      </span>
+                    )}
+                  </p>
+                )}
+                <h1 className="text-letterpress font-display text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">
+                  {item.name}
+                  {item.isScrap && (
+                    <span className="ml-2.5 inline-block -translate-y-0.5 rotate-[7deg] rounded-[3px] border-2 border-[#a83c2a]/65 px-1.5 py-px align-middle font-sans text-[10px] font-black uppercase tracking-[0.12em] text-[#a83c2a]/75">
+                      Scrap
+                    </span>
+                  )}
+                </h1>
+              </div>
+              <div className="divide-y divide-[#c9b28c]/60 border-t border-[#c9b28c]/60">
                 <SpecRow label="Cantidad">
                   {item.quantity} {item.unit}
                 </SpecRow>
@@ -167,35 +188,15 @@ export default async function ItemDetailPage({
           </div>
 
           <div className="space-y-5">
-            <div className="space-y-2">
-              {item.species && (
-                <p className="eyebrow text-primary">
-                  {item.species}
-                  {confidence && (
-                    <span className="ml-2 font-normal normal-case tracking-normal text-muted-foreground">
-                      identificada por IA · {confidence}
-                    </span>
-                  )}
-                </p>
-              )}
-              <h1 className="text-letterpress font-display text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
-                {item.name}
-                {item.isScrap && (
-                  <span className="ml-3 inline-block -translate-y-1 rotate-[7deg] rounded-[3px] border-2 border-[#a83c2a]/65 px-1.5 py-px align-middle font-sans text-[11px] font-black uppercase tracking-[0.12em] text-[#a83c2a]/75">
-                    Scrap
-                  </span>
-                )}
-              </h1>
-              {item.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {item.tags.map((tag) => (
-                    <Badge key={tag} variant="outline">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
+            {item.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {item.tags.map((tag) => (
+                  <Badge key={tag} variant="outline">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            )}
 
             {item.notes && (
               <div className="panel-paper rounded-2xl p-4">
