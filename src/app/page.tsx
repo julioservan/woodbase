@@ -189,6 +189,10 @@ export default async function HomePage({
                 ?.split("?")[0]
                 .toLowerCase()
                 .endsWith(".png");
+              // Con 2+ unidades se apilan copias detrás (máximo 2 copias).
+              const stackCopies = isCutout
+                ? Math.min(Math.max(Math.floor(item.quantity), 1), 3) - 1
+                : 0;
               return (
                 <Link
                   key={item.id}
@@ -199,12 +203,29 @@ export default async function HomePage({
                       todas las baldas de una fila queden alineadas. */}
                   <div className="relative z-10 -mb-[12px] flex h-44 items-end justify-center px-1.5 transition-transform duration-200 group-hover:-translate-y-1.5 sm:h-52">
                     {isCutout ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={item.photoUrl!}
-                        alt={item.name}
-                        className="max-h-[96%] max-w-full object-contain [filter:drop-shadow(0_12px_9px_rgba(30,18,8,0.38))_drop-shadow(0_2px_2px_rgba(30,18,8,0.35))]"
-                      />
+                      <div className="relative flex h-full max-w-full items-end justify-center">
+                        {/* Copias apiladas detrás; al hacer hover se abren */}
+                        {Array.from({ length: stackCopies }).map((_, i) => (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            key={i}
+                            src={item.photoUrl!}
+                            alt=""
+                            aria-hidden
+                            className={
+                              i === 0
+                                ? "absolute bottom-0 max-h-[96%] max-w-full origin-bottom translate-x-[9px] rotate-2 object-contain brightness-[0.78] transition-transform duration-200 group-hover:translate-x-[22px] group-hover:rotate-6"
+                                : "absolute bottom-0 max-h-[96%] max-w-full origin-bottom -translate-x-[9px] -rotate-2 object-contain brightness-[0.62] transition-transform duration-200 group-hover:-translate-x-[22px] group-hover:-rotate-6"
+                            }
+                          />
+                        ))}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={item.photoUrl!}
+                          alt={item.name}
+                          className="relative z-10 max-h-[96%] max-w-full object-contain [filter:drop-shadow(0_12px_9px_rgba(30,18,8,0.38))_drop-shadow(0_2px_2px_rgba(30,18,8,0.35))]"
+                        />
+                      </div>
                     ) : (
                       <div className="relative aspect-square max-h-[92%] w-[88%] overflow-hidden rounded-lg border-[5px] border-[#5a3f28] bg-card shadow-[0_12px_14px_rgba(30,18,8,0.4),0_2px_3px_rgba(30,18,8,0.3)]">
                         <WoodPhoto
