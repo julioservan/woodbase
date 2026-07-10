@@ -1,4 +1,5 @@
 import {
+  boolean,
   pgEnum,
   pgTable,
   real,
@@ -33,6 +34,8 @@ export const woodItems = pgTable("wood_items", {
   widthIn: real("width_in"),
   thicknessIn: real("thickness_in"),
   cutType: cutTypeEnum("cut_type"),
+  // Retal/scrap: recorte sobrante de otro proyecto.
+  isScrap: boolean("is_scrap").notNull().default(false),
   location: text("location"),
   tags: text("tags").array().notNull().default([]),
   photoUrl: text("photo_url"),

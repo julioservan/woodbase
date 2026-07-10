@@ -1,0 +1,1 @@
+ALTER TABLE "wood_items" ADD COLUMN "is_scrap" boolean DEFAULT false NOT NULL;

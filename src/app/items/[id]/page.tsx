@@ -93,6 +93,11 @@ export default async function ItemDetailPage({
               )}
               <h1 className="text-letterpress font-display text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
                 {item.name}
+                {item.isScrap && (
+                  <span className="ml-3 inline-block -translate-y-1 rotate-[7deg] rounded-[3px] border-2 border-[#a83c2a]/65 px-1.5 py-px align-middle font-sans text-[11px] font-black uppercase tracking-[0.12em] text-[#a83c2a]/75">
+                    Retal
+                  </span>
+                )}
               </h1>
               {item.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 pt-1">

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { and, arrayContains, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, or } from "drizzle-orm";
 import { MapPin, Search } from "lucide-react";
 import { getDb } from "@/lib/db";
 import { woodItems } from "@/lib/db/schema";
@@ -22,7 +22,7 @@ interface Filters {
   q?: string;
   species?: string;
   cut?: string;
-  tag?: string;
+  scrap?: string;
 }
 
 export default async function HomePage({
@@ -30,7 +30,7 @@ export default async function HomePage({
 }: {
   searchParams: Promise<Filters>;
 }) {
-  const { q, species, cut, tag } = await searchParams;
+  const { q, species, cut, scrap } = await searchParams;
   const db = getDb();
 
   const conditions = [];
@@ -49,9 +49,10 @@ export default async function HomePage({
   if (CUT_TYPES.includes(cut as CutType)) {
     conditions.push(eq(woodItems.cutType, cut as CutType));
   }
-  if (tag) conditions.push(arrayContains(woodItems.tags, [tag]));
+  if (scrap === "only") conditions.push(eq(woodItems.isScrap, true));
+  if (scrap === "hide") conditions.push(eq(woodItems.isScrap, false));
 
-  const [items, speciesRows, tagRows] = await Promise.all([
+  const [items, speciesRows] = await Promise.all([
     db
       .select()
       .from(woodItems)
@@ -61,16 +62,12 @@ export default async function HomePage({
       .selectDistinct({ species: woodItems.species })
       .from(woodItems)
       .orderBy(woodItems.species),
-    db.execute(
-      sql`select distinct unnest(${woodItems.tags}) as tag from ${woodItems} order by tag`,
-    ),
   ]);
 
   const allSpecies = speciesRows
     .map((r) => r.species)
     .filter((s): s is string => !!s);
-  const allTags = (tagRows.rows as { tag: string }[]).map((r) => r.tag);
-  const hasFilters = !!(q || species || cut || tag);
+  const hasFilters = !!(q || species || cut || scrap);
 
   return (
     <>
@@ -131,17 +128,14 @@ export default async function HomePage({
               ))}
             </Select>
             <Select
-              name="tag"
-              defaultValue={tag ?? ""}
+              name="scrap"
+              defaultValue={scrap ?? ""}
               className="sm:w-auto sm:min-w-32"
-              aria-label="Filtrar por etiqueta"
+              aria-label="Filtrar retales"
             >
-              <option value="">Todas las etiquetas</option>
-              {allTags.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
+              <option value="">Todo el taller</option>
+              <option value="only">Solo retales</option>
+              <option value="hide">Sin retales</option>
             </Select>
             <Button
               type="submit"
@@ -292,6 +286,11 @@ export default async function HomePage({
                     <span className="brass absolute left-1/2 top-2 flex h-4 w-4 -translate-x-1/2 items-center justify-center rounded-full">
                       <span className="h-1.5 w-1.5 rounded-full bg-[#4a351d] shadow-[inset_0_1px_1px_rgba(0,0,0,0.6)]" />
                     </span>
+                    {item.isScrap && (
+                      <span className="absolute right-2.5 top-2.5 rotate-[7deg] rounded-[3px] border-2 border-[#a83c2a]/65 px-1 py-px text-[9px] font-black uppercase tracking-[0.12em] text-[#a83c2a]/75 [mask-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cfilter id='r'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.5' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.7 0.3'/%3E%3C/filter%3E%3Crect width='60' height='60' filter='url(%23r)'/%3E%3C/svg%3E&quot;)]">
+                        Retal
+                      </span>
+                    )}
                     {item.species && (
                       <p className="eyebrow text-primary">{item.species}</p>
                     )}

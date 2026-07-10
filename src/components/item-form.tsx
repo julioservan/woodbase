@@ -300,11 +300,27 @@ export function ItemForm({
             <datalist id="unit-suggestions">
               <option value="tablones" />
               <option value="piezas" />
+              <option value="paneles" />
               <option value="pies tablares" />
               <option value="pies lineales" />
               <option value="pies cuadrados" />
             </datalist>
           </div>
+
+          <label className="flex cursor-pointer items-center gap-2.5 sm:col-span-2">
+            <input
+              type="checkbox"
+              name="isScrap"
+              defaultChecked={item?.isScrap ?? false}
+              className="h-4 w-4 accent-primary"
+            />
+            <span className="text-sm font-medium">
+              Es un retal{" "}
+              <span className="font-normal text-muted-foreground">
+                (recorte sobrante de otro proyecto)
+              </span>
+            </span>
+          </label>
         </div>
       </FormSection>
 

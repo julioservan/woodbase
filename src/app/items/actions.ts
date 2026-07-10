@@ -45,6 +45,7 @@ function parseItemForm(formData: FormData): Omit<NewWoodItem, "id"> {
     widthIn: inches("widthIn"),
     thicknessIn: inches("thicknessIn"),
     cutType,
+    isScrap: formData.get("isScrap") === "on",
     location: str("location"),
     tags: Array.from(new Set(tags)),
     photoUrl: str("photoUrl"),
