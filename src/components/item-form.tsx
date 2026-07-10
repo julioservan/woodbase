@@ -18,6 +18,51 @@ interface IdentifyResult {
   reasoning: string;
 }
 
+// Especies habituales: clásicas de EE. UU. + las del taller, en formato
+// "inglés (español)". Si falta alguna, la opción "Otra…" abre campo libre.
+const SPECIES_OPTIONS = [
+  "ash (fresno)",
+  "beech (haya)",
+  "birch (abedul)",
+  "bocote",
+  "bubinga",
+  "cedar (cedro)",
+  "cherry (cerezo)",
+  "claro walnut (nogal claro)",
+  "cocobolo",
+  "douglas fir (abeto de Douglas)",
+  "granadillo",
+  "hickory (pacana)",
+  "mahogany (caoba)",
+  "mango",
+  "maple (arce)",
+  "narra",
+  "olive (olivo)",
+  "padauk",
+  "pine (pino)",
+  "poplar (álamo)",
+  "purpleheart (amaranto)",
+  "red oak (roble rojo)",
+  "sande",
+  "sapele (sapeli)",
+  "siberian elm (olmo siberiano)",
+  "sucupira",
+  "teak (teca)",
+  "walnut (nogal)",
+  "wenge (wengué)",
+  "white oak (roble blanco)",
+  "zebrawood (cebrano)",
+];
+
+const UNIT_OPTIONS = [
+  "tablones",
+  "piezas",
+  "paneles",
+  "pies tablares",
+  "pies lineales",
+  "pies cuadrados",
+];
+
 function FormSection({
   title,
   children,
@@ -49,6 +94,10 @@ export function ItemForm({
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const [species, setSpecies] = useState(item?.species ?? "");
+  // "Otra…" abre un campo libre para especies fuera de la lista.
+  const [customSpecies, setCustomSpecies] = useState(
+    !!item?.species && !SPECIES_OPTIONS.includes(item.species),
+  );
   const [speciesConfidence, setSpeciesConfidence] = useState<string>(
     item?.speciesConfidence != null ? String(item.speciesConfidence) : "",
   );
@@ -100,6 +149,7 @@ export function ItemForm({
       const result = data as IdentifyResult;
       setIdentifyResult(result);
       setSpecies(result.species);
+      setCustomSpecies(!SPECIES_OPTIONS.includes(result.species));
       setSpeciesConfidence(result.confidence.toFixed(2));
     } catch (err) {
       setIdentifyError(
@@ -112,6 +162,7 @@ export function ItemForm({
 
   function applyAlternative(alt: { species: string; confidence: number }) {
     setSpecies(alt.species);
+    setCustomSpecies(!SPECIES_OPTIONS.includes(alt.species));
     setSpeciesConfidence(alt.confidence.toFixed(2));
   }
 
@@ -242,17 +293,42 @@ export function ItemForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="species">Especie</Label>
-            <Input
-              id="species"
-              name="species"
-              value={species}
+            <Label htmlFor="species-select">Especie</Label>
+            <Select
+              id="species-select"
+              value={customSpecies ? "__custom" : species}
               onChange={(e) => {
-                setSpecies(e.target.value);
+                if (e.target.value === "__custom") {
+                  setCustomSpecies(true);
+                  setSpecies("");
+                } else {
+                  setCustomSpecies(false);
+                  setSpecies(e.target.value);
+                }
                 setSpeciesConfidence("");
               }}
-              placeholder="roble, nogal, pino..."
-            />
+            >
+              <option value="">Sin especificar</option>
+              {SPECIES_OPTIONS.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+              <option value="__custom">Otra…</option>
+            </Select>
+            {customSpecies && (
+              <Input
+                aria-label="Especie personalizada"
+                value={species}
+                onChange={(e) => {
+                  setSpecies(e.target.value);
+                  setSpeciesConfidence("");
+                }}
+                placeholder="inglés (español), ej. koa"
+                autoFocus
+              />
+            )}
+            <input type="hidden" name="species" value={species} />
             <input
               type="hidden"
               name="speciesConfidence"
@@ -290,21 +366,18 @@ export function ItemForm({
 
           <div className="space-y-2">
             <Label htmlFor="unit">Unidad</Label>
-            <Input
-              id="unit"
-              name="unit"
-              defaultValue={item?.unit ?? "tablones"}
-              placeholder="tablones, pies tablares, piezas..."
-              list="unit-suggestions"
-            />
-            <datalist id="unit-suggestions">
-              <option value="tablones" />
-              <option value="piezas" />
-              <option value="paneles" />
-              <option value="pies tablares" />
-              <option value="pies lineales" />
-              <option value="pies cuadrados" />
-            </datalist>
+            <Select id="unit" name="unit" defaultValue={item?.unit ?? "tablones"}>
+              {/* Si la pieza trae una unidad antigua fuera de la lista, se
+                  conserva como opción para no perderla al editar. */}
+              {item?.unit && !UNIT_OPTIONS.includes(item.unit) && (
+                <option value={item.unit}>{item.unit}</option>
+              )}
+              {UNIT_OPTIONS.map((u) => (
+                <option key={u} value={u}>
+                  {u}
+                </option>
+              ))}
+            </Select>
           </div>
 
           <label className="flex cursor-pointer items-center gap-2.5 sm:col-span-2">
