@@ -8,6 +8,13 @@
       "when": 1783638775560,
       "tag": "0000_breezy_wild_pack",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1783655297659,
+      "tag": "0001_simple_firebird",
+      "breakpoints": true
     }
   ]
 }

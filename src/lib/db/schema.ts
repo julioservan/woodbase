@@ -17,6 +17,7 @@ export const cutTypeEnum = pgEnum("cut_type", [
   "cookie",
   "torneado",
   "chapa",
+  "plywood",
 ]);
 
 export const woodItems = pgTable("wood_items", {

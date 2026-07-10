@@ -196,9 +196,10 @@ export default async function HomePage({
               // Con 2+ unidades se apilan tantas copias como piezas haya
               // (tope visual: 8). Solo con unidades contables — con volumen
               // (pies tablares...) la cantidad no es un número de tablas.
-              const isCountable = /tabl[oó]n|pieza|unidad|bloque|palo/i.test(
-                item.unit,
-              );
+              const isCountable =
+                /tabl[oó]n|pieza|unidad|bloque|palo|panel|plancha/i.test(
+                  item.unit,
+                );
               const stackCopies =
                 isCutout && isCountable
                   ? Math.min(Math.max(Math.floor(item.quantity), 1), 8) - 1

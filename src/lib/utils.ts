@@ -74,6 +74,7 @@ export const CUT_TYPES = [
   "cookie",
   "torneado",
   "chapa",
+  "plywood",
 ] as const;
 
 export type CutType = (typeof CUT_TYPES)[number];
@@ -84,6 +85,7 @@ export const CUT_LABELS: Record<CutType, string> = {
   cookie: "Cookie",
   torneado: "Torneado",
   chapa: "Chapa",
+  plywood: "Plywood",
 };
 
 /**

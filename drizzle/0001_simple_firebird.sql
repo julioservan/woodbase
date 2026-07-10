@@ -1,0 +1,1 @@
+ALTER TYPE "public"."cut_type" ADD VALUE 'plywood';
