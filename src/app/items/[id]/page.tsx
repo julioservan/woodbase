@@ -55,6 +55,29 @@ export default async function ItemDetailPage({
   const bf = boardFeet(item.lengthIn, item.widthIn, item.thicknessIn);
   const deleteThisItem = deleteItem.bind(null, item.id);
 
+  // Misma lógica de exhibición que el inventario: los PNG (recortes sin
+  // fondo) se apoyan tal cual sobre la balda, el resto va enmarcado.
+  const isCutout = item.photoUrl
+    ?.split("?")[0]
+    .toLowerCase()
+    .endsWith(".png");
+  const isCountable =
+    /tabl[oó]n|pieza|unidad|bloque|palo|panel|plancha/i.test(item.unit);
+  const stackCopies =
+    isCutout && isCountable
+      ? Math.min(Math.max(Math.floor(item.quantity), 1), 8) - 1
+      : 0;
+  const stack = Array.from({ length: stackCopies }, (_, i) => {
+    const level = Math.floor(i / 2) + 1;
+    const side = i % 2 === 0 ? 1 : -1;
+    return {
+      key: i,
+      tx: side * level * 10,
+      rot: side * level * 1.7,
+      brightness: Math.max(1 - level * 0.13, 0.45),
+    };
+  }).reverse();
+
   return (
     <>
       <Header />
@@ -66,17 +89,81 @@ export default async function ItemDetailPage({
           <ArrowLeft className="h-4 w-4" /> Volver al inventario
         </Link>
 
-        <div className="grid gap-7 md:grid-cols-[1.05fr_1fr]">
-          {/* Foto enmarcada como un cuadro: paspartú de papel + marco fino */}
-          <div className="relative w-full max-w-md self-start justify-self-center rounded-md border border-[#7a5a35] bg-[#fdfaf2] p-2.5 shadow-[0_16px_28px_-10px_rgba(40,24,10,0.6),inset_0_1px_0_rgba(255,255,255,0.9)] md:max-w-none md:justify-self-auto">
-            <div className="relative overflow-hidden rounded-sm">
-              <WoodPhoto
-                url={item.photoUrl}
-                alt={item.name}
-                className="aspect-square w-full"
-              />
-              <div className="pointer-events-none absolute inset-0 shadow-[inset_0_2px_10px_rgba(30,18,8,0.45),inset_0_0_0_1px_rgba(255,255,255,0.2)]" />
+        <div className="grid gap-8 md:grid-cols-[1.05fr_1fr]">
+          {/* Exhibición: la pieza de pie sobre su balda, y la ficha técnica
+              colgando de ella como etiqueta de taller */}
+          <div className="flex w-full max-w-md flex-col self-start justify-self-center md:max-w-none md:justify-self-auto">
+            <div className="relative z-10 -mb-[12px] flex h-64 items-end justify-center px-2 sm:h-80">
+              {isCutout ? (
+                <div className="relative flex h-full max-w-full items-end justify-center">
+                  {stack.map((c) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      key={c.key}
+                      src={item.photoUrl!}
+                      alt=""
+                      aria-hidden
+                      style={
+                        {
+                          "--tx": `${c.tx}px`,
+                          "--rot": `${c.rot}deg`,
+                          filter: `brightness(${c.brightness})`,
+                        } as React.CSSProperties
+                      }
+                      className="absolute bottom-0 max-h-[96%] max-w-full origin-bottom translate-x-[var(--tx)] rotate-[var(--rot)] object-contain"
+                    />
+                  ))}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={item.photoUrl!}
+                    alt={item.name}
+                    className="relative z-10 max-h-[96%] max-w-full object-contain [filter:drop-shadow(0_14px_11px_rgba(30,18,8,0.38))_drop-shadow(0_2px_2px_rgba(30,18,8,0.35))]"
+                  />
+                </div>
+              ) : (
+                <div className="relative aspect-square max-h-[92%] w-[82%] overflow-hidden rounded-lg border-[6px] border-[#5a3f28] bg-card shadow-[0_14px_18px_rgba(30,18,8,0.4),0_2px_3px_rgba(30,18,8,0.3)]">
+                  <WoodPhoto
+                    url={item.photoUrl}
+                    alt={item.name}
+                    className="h-full w-full"
+                  />
+                  <div className="pointer-events-none absolute inset-0 shadow-[inset_0_2px_10px_rgba(30,18,8,0.45),inset_0_0_0_1px_rgba(255,255,255,0.2)]" />
+                </div>
+              )}
             </div>
+            {/* Balda: su canto tapa el borde inferior de la madera */}
+            <div className="shelf relative z-20 mx-[-4%]" />
+            {/* Cordel y etiqueta de taller con la ficha técnica */}
+            <div className="relative z-0 mx-auto -mb-[2px] h-4 w-[3px] rounded-full bg-gradient-to-b from-[#4f3319] to-[#7a5230]" />
+            <dl className="tag-manila relative rounded-lg p-2 pt-7 before:pointer-events-none before:absolute before:inset-1.5 before:rounded-md before:border before:border-dashed before:border-[#a5865a]/60 before:content-['']">
+              <span className="brass absolute left-1/2 top-2 flex h-4 w-4 -translate-x-1/2 items-center justify-center rounded-full">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#4a351d] shadow-[inset_0_1px_1px_rgba(0,0,0,0.6)]" />
+              </span>
+              <div className="divide-y divide-[#c9b28c]/60">
+                <SpecRow label="Cantidad">
+                  {item.quantity} {item.unit}
+                </SpecRow>
+                <SpecRow label="Dimensiones">
+                  {dimensions ? (
+                    <span className="tabular-nums">{dimensions}</span>
+                  ) : (
+                    "—"
+                  )}
+                </SpecRow>
+                {bf != null && (
+                  <SpecRow label="Pies tablares">
+                    <span className="tabular-nums">{bf} BF</span>
+                  </SpecRow>
+                )}
+                <SpecRow label="Tipo de corte">
+                  {item.cutType ? <CutBadge cut={item.cutType} /> : "—"}
+                </SpecRow>
+                <SpecRow label="Ubicación">{item.location ?? "—"}</SpecRow>
+                <SpecRow label="Añadida">
+                  {dateFormatter.format(item.createdAt)}
+                </SpecRow>
+              </div>
+            </dl>
           </div>
 
           <div className="space-y-5">
@@ -109,32 +196,6 @@ export default async function ItemDetailPage({
                 </div>
               )}
             </div>
-
-            {/* Ficha técnica */}
-            <dl className="panel-paper divide-y divide-[#c9b28c]/60 rounded-2xl">
-              <SpecRow label="Cantidad">
-                {item.quantity} {item.unit}
-              </SpecRow>
-              <SpecRow label="Dimensiones">
-                {dimensions ? (
-                  <span className="tabular-nums">{dimensions}</span>
-                ) : (
-                  "—"
-                )}
-              </SpecRow>
-              {bf != null && (
-                <SpecRow label="Pies tablares">
-                  <span className="tabular-nums">{bf} BF</span>
-                </SpecRow>
-              )}
-              <SpecRow label="Tipo de corte">
-                {item.cutType ? <CutBadge cut={item.cutType} /> : "—"}
-              </SpecRow>
-              <SpecRow label="Ubicación">{item.location ?? "—"}</SpecRow>
-              <SpecRow label="Añadida">
-                {dateFormatter.format(item.createdAt)}
-              </SpecRow>
-            </dl>
 
             {item.notes && (
               <div className="panel-paper rounded-2xl p-4">
