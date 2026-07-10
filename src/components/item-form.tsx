@@ -495,7 +495,9 @@ export function ItemForm({
         />
       </FormSection>
 
-      <div className="flex gap-3 pb-2">
+      {/* Barra de guardado flotante: pegada abajo mientras editas, con un
+          degradado que la separa del contenido y respeta la zona segura. */}
+      <div className="sticky bottom-0 z-30 -mx-4 bg-gradient-to-t from-background from-60% via-background/90 to-transparent px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-6">
         <Button
           type="submit"
           disabled={isPending || uploading}
