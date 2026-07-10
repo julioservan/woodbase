@@ -316,11 +316,15 @@ export function ItemForm({
       <FormSection title="La pieza">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2 sm:col-span-2">
-            <Label htmlFor="name">Nombre *</Label>
+            <Label htmlFor="name">
+              Nombre{" "}
+              <span className="font-normal text-muted-foreground">
+                (opcional: si lo dejas vacío, se usa la especie)
+              </span>
+            </Label>
             <Input
               id="name"
               name="name"
-              required
               defaultValue={item?.name ?? ""}
               placeholder="Tablón de roble del aserradero"
             />

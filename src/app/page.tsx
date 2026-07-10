@@ -299,9 +299,12 @@ export default async function HomePage({
                         Scrap
                       </span>
                     )}
-                    {item.species && (
-                      <p className="eyebrow text-primary">{item.species}</p>
-                    )}
+                    {/* Si la pieza se llama como su especie, no la repetimos */}
+                    {item.species &&
+                      item.species.toLowerCase() !==
+                        item.name.toLowerCase() && (
+                        <p className="eyebrow text-primary">{item.species}</p>
+                      )}
                     <h2 className="text-letterpress line-clamp-2 text-sm font-semibold leading-snug sm:text-[15px]">
                       {item.name}
                     </h2>

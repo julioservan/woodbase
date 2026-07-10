@@ -153,16 +153,18 @@ export default async function ItemDetailPage({
               </span>
               {/* Cabecera del cartel: especie, nombre y sello de scrap */}
               <div className="space-y-1 px-4 pb-3 pt-1">
-                {item.species && (
-                  <p className="eyebrow text-primary">
-                    {item.species}
-                    {confidence && (
-                      <span className="ml-2 font-normal normal-case tracking-normal text-muted-foreground">
-                        identificada por IA · {confidence}
-                      </span>
-                    )}
-                  </p>
-                )}
+                {/* Si la pieza se llama como su especie, no la repetimos */}
+                {item.species &&
+                  item.species.toLowerCase() !== item.name.toLowerCase() && (
+                    <p className="eyebrow text-primary">
+                      {item.species}
+                      {confidence && (
+                        <span className="ml-2 font-normal normal-case tracking-normal text-muted-foreground">
+                          identificada por IA · {confidence}
+                        </span>
+                      )}
+                    </p>
+                  )}
                 <h1 className="text-letterpress font-display text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">
                   {item.name}
                   {item.isScrap && (

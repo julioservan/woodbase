@@ -28,8 +28,13 @@ function parseItemForm(formData: FormData): Omit<NewWoodItem, "id"> {
   };
   const inches = (key: string): number | null => parseInches(str(key));
 
-  const name = str("name");
-  if (!name) throw new Error("El nombre es obligatorio");
+  const species = str("species");
+  // El nombre es opcional: sin nombre, la pieza se llama como su especie.
+  const rawName = str("name");
+  const name =
+    rawName ??
+    (species ? species.charAt(0).toUpperCase() + species.slice(1) : null);
+  if (!name) throw new Error("Pon un nombre o al menos la especie");
 
   const cutRaw = str("cutType");
   const cutType = CUT_TYPES.includes(cutRaw as CutType)
@@ -43,7 +48,7 @@ function parseItemForm(formData: FormData): Omit<NewWoodItem, "id"> {
 
   return {
     name,
-    species: str("species"),
+    species,
     speciesConfidence: num("speciesConfidence"),
     quantity: num("quantity") ?? 1,
     unit: str("unit") ?? "tablones",
