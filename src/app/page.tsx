@@ -181,7 +181,7 @@ export default async function HomePage({
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-x-3 gap-y-9 sm:grid-cols-3 sm:gap-x-5 lg:grid-cols-4">
-            {items.map((item) => {
+            {items.map((item, index) => {
               const dimensions = formatDimensions(
                 item.lengthIn,
                 item.widthIn,
@@ -274,8 +274,20 @@ export default async function HomePage({
                   {/* Balda sobre la que descansa la pieza: su canto tapa el
                       borde inferior de la madera para que parezca apoyada */}
                   <div className="shelf relative z-20 mx-[-5%]" />
-                  {/* Plaquita con los datos, bajo la balda */}
-                  <article className="panel-paper mt-2.5 space-y-1.5 rounded-xl p-3 sm:p-3.5">
+                  {/* Cordel del que cuelga la etiqueta */}
+                  <div className="relative z-0 mx-auto -mb-[2px] h-4 w-[3px] rounded-full bg-gradient-to-b from-[#4f3319] to-[#7a5230]" />
+                  {/* Etiqueta de taller: cartón manila con ojal de latón,
+                      colgada del cordel con un vuelo alterno */}
+                  <article
+                    className={`tag-manila relative space-y-1.5 rounded-lg p-3 pt-6 transition-transform duration-300 before:pointer-events-none before:absolute before:inset-1.5 before:rounded-md before:border before:border-dashed before:border-[#a5865a]/60 before:content-[''] group-hover:rotate-0 sm:p-3.5 sm:pt-6 ${
+                      index % 2 === 0
+                        ? "origin-top rotate-[-0.8deg]"
+                        : "origin-top rotate-[0.8deg]"
+                    }`}
+                  >
+                    <span className="brass absolute left-1/2 top-2 flex h-4 w-4 -translate-x-1/2 items-center justify-center rounded-full">
+                      <span className="h-1.5 w-1.5 rounded-full bg-[#4a351d] shadow-[inset_0_1px_1px_rgba(0,0,0,0.6)]" />
+                    </span>
                     {item.species && (
                       <p className="eyebrow text-primary">{item.species}</p>
                     )}
