@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { and, desc, eq, ilike, or } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, or } from "drizzle-orm";
 import { MapPin, Search } from "lucide-react";
 import { getDb } from "@/lib/db";
 import { woodItems } from "@/lib/db/schema";
@@ -24,6 +24,7 @@ interface Filters {
   species?: string;
   cut?: string;
   scrap?: string;
+  sort?: string;
 }
 
 export default async function HomePage({
@@ -31,7 +32,7 @@ export default async function HomePage({
 }: {
   searchParams: Promise<Filters>;
 }) {
-  const { q, species, cut, scrap } = await searchParams;
+  const { q, species, cut, scrap, sort } = await searchParams;
   const db = getDb();
 
   const conditions = [];
@@ -53,12 +54,23 @@ export default async function HomePage({
   if (scrap === "only") conditions.push(eq(woodItems.isScrap, true));
   if (scrap === "hide") conditions.push(eq(woodItems.isScrap, false));
 
+  // Orden: más recientes por defecto; por tipo/especie/nombre alfabético
+  // (los enums se ordenan por su posición y los nulos van al final).
+  const orderBy =
+    sort === "tipo"
+      ? [asc(woodItems.cutType), asc(woodItems.name)]
+      : sort === "especie"
+        ? [asc(woodItems.species), asc(woodItems.name)]
+        : sort === "nombre"
+          ? [asc(woodItems.name)]
+          : [desc(woodItems.createdAt)];
+
   const [items, speciesRows] = await Promise.all([
     db
       .select()
       .from(woodItems)
       .where(conditions.length ? and(...conditions) : undefined)
-      .orderBy(desc(woodItems.createdAt)),
+      .orderBy(...orderBy),
     db
       .selectDistinct({ species: woodItems.species })
       .from(woodItems)
@@ -68,7 +80,7 @@ export default async function HomePage({
   const allSpecies = speciesRows
     .map((r) => r.species)
     .filter((s): s is string => !!s);
-  const hasFilters = !!(q || species || cut || scrap);
+  const hasFilters = !!(q || species || cut || scrap || sort);
 
   return (
     <>
@@ -138,10 +150,21 @@ export default async function HomePage({
               <option value="only">Solo scraps</option>
               <option value="hide">Sin scraps</option>
             </Select>
+            <Select
+              name="sort"
+              defaultValue={sort ?? ""}
+              className="sm:w-auto sm:min-w-32"
+              aria-label="Ordenar"
+            >
+              <option value="">Más recientes</option>
+              <option value="tipo">Por tipo de corte</option>
+              <option value="especie">Por especie</option>
+              <option value="nombre">Por nombre</option>
+            </Select>
             <Button
               type="submit"
               size="sm"
-              className="h-10 w-full rounded-lg px-4 sm:h-8 sm:w-auto"
+              className="col-span-2 h-10 w-full rounded-lg px-4 sm:col-span-1 sm:h-8 sm:w-auto"
             >
               Filtrar
             </Button>
