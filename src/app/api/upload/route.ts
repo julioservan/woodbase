@@ -6,7 +6,13 @@ export const runtime = "nodejs";
 const MAX_SIZE_BYTES = 8 * 1024 * 1024; // 8 MB
 
 // La foto va cliente → esta función → Vercel Blob. El token
-// BLOB_READ_WRITE_TOKEN vive solo en el servidor y put() lo lee del entorno.
+// BLOB_READ_WRITE_TOKEN vive solo en el servidor. Un token pegado a mano en
+// Vercel puede traer saltos de línea, espacios o comillas (rompen la cabecera
+// Authorization con "invalid header value"), así que lo saneamos siempre.
+function blobToken() {
+  return process.env.BLOB_READ_WRITE_TOKEN?.replace(/["'\s]/g, "") || undefined;
+}
+
 export async function POST(request: Request) {
   const formData = await request.formData();
   const file = formData.get("file");
@@ -37,6 +43,7 @@ export async function POST(request: Request) {
     const blob = await put(`wood/${crypto.randomUUID()}.${ext}`, file, {
       access: "public",
       contentType: file.type,
+      token: blobToken(),
     });
     return NextResponse.json({ url: blob.url });
   } catch (error) {
