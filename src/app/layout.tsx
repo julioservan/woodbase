@@ -23,6 +23,9 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  // Deja que el fondo se extienda bajo el Dynamic Island / barra inferior;
+  // los componentes respetan las zonas seguras con env(safe-area-inset-*).
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

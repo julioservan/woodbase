@@ -58,7 +58,7 @@ export default async function ItemDetailPage({
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-4xl px-4 py-7">
+      <main className="mx-auto max-w-4xl px-4 py-6 pb-[max(1.75rem,env(safe-area-inset-bottom))] sm:py-7">
         <Link
           href="/"
           className="mb-5 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -68,7 +68,7 @@ export default async function ItemDetailPage({
 
         <div className="grid gap-7 md:grid-cols-[1.05fr_1fr]">
           {/* Foto enmarcada como un cuadro: paspartú de papel + marco fino */}
-          <div className="relative self-start rounded-md border border-[#7a5a35] bg-[#fdfaf2] p-2.5 shadow-[0_16px_28px_-10px_rgba(40,24,10,0.6),inset_0_1px_0_rgba(255,255,255,0.9)]">
+          <div className="relative w-full max-w-md self-start justify-self-center rounded-md border border-[#7a5a35] bg-[#fdfaf2] p-2.5 shadow-[0_16px_28px_-10px_rgba(40,24,10,0.6),inset_0_1px_0_rgba(255,255,255,0.9)] md:max-w-none md:justify-self-auto">
             <div className="relative overflow-hidden rounded-sm">
               <WoodPhoto
                 url={item.photoUrl}

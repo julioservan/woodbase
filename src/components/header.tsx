@@ -13,7 +13,7 @@ async function logout() {
 
 export function Header() {
   return (
-    <header className="sticky top-0 z-10 border-b-2 border-black/50 bg-planks-dark text-walnut-foreground shadow-[0_4px_10px_rgba(30,18,8,0.55),inset_0_1px_0_rgba(255,226,170,0.12),inset_0_-1px_0_rgba(255,226,170,0.08)]">
+    <header className="sticky top-0 z-30 border-b-2 border-black/50 bg-planks-dark pt-[env(safe-area-inset-top)] text-walnut-foreground shadow-[0_4px_10px_rgba(30,18,8,0.55),inset_0_1px_0_rgba(255,226,170,0.12),inset_0_-1px_0_rgba(255,226,170,0.08)]">
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
         <Link href="/" className="group flex items-center gap-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}

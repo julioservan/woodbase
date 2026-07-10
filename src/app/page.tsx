@@ -75,7 +75,7 @@ export default async function HomePage({
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-5xl px-4 py-7">
+      <main className="mx-auto max-w-5xl px-4 py-6 pb-[max(1.75rem,env(safe-area-inset-bottom))] sm:py-7">
         <div className="mb-5 flex flex-wrap items-baseline justify-between gap-2">
           <h1 className="text-letterpress font-display text-4xl font-semibold tracking-tight">
             Inventario
@@ -103,11 +103,11 @@ export default async function HomePage({
               className="h-10 pl-9"
             />
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid grid-cols-2 items-center gap-2 sm:flex sm:flex-wrap">
             <Select
               name="species"
               defaultValue={species ?? ""}
-              className="w-auto min-w-32 flex-1 sm:flex-none"
+              className="sm:w-auto sm:min-w-32"
               aria-label="Filtrar por especie"
             >
               <option value="">Todas las especies</option>
@@ -120,7 +120,7 @@ export default async function HomePage({
             <Select
               name="cut"
               defaultValue={cut ?? ""}
-              className="w-auto min-w-32 flex-1 sm:flex-none"
+              className="sm:w-auto sm:min-w-32"
               aria-label="Filtrar por tipo de corte"
             >
               <option value="">Cualquier corte</option>
@@ -133,7 +133,7 @@ export default async function HomePage({
             <Select
               name="tag"
               defaultValue={tag ?? ""}
-              className="w-auto min-w-32 flex-1 sm:flex-none"
+              className="sm:w-auto sm:min-w-32"
               aria-label="Filtrar por etiqueta"
             >
               <option value="">Todas las etiquetas</option>
@@ -143,13 +143,17 @@ export default async function HomePage({
                 </option>
               ))}
             </Select>
-            <Button type="submit" size="sm" className="rounded-lg px-4">
+            <Button
+              type="submit"
+              size="sm"
+              className="h-10 w-full rounded-lg px-4 sm:h-8 sm:w-auto"
+            >
               Filtrar
             </Button>
             {hasFilters && (
               <Link
                 href="/"
-                className="text-sm text-muted-foreground underline-offset-2 hover:underline"
+                className="col-span-2 justify-self-center text-sm text-muted-foreground underline-offset-2 hover:underline sm:col-span-1"
               >
                 Limpiar
               </Link>
@@ -176,7 +180,7 @@ export default async function HomePage({
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-x-5 gap-y-9 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-9 sm:grid-cols-3 sm:gap-x-5 lg:grid-cols-4">
             {items.map((item) => {
               const dimensions = formatDimensions(
                 item.lengthIn,
@@ -271,11 +275,11 @@ export default async function HomePage({
                       borde inferior de la madera para que parezca apoyada */}
                   <div className="shelf relative z-20 mx-[-5%]" />
                   {/* Plaquita con los datos, bajo la balda */}
-                  <article className="panel-paper mt-2.5 space-y-1.5 rounded-xl p-3.5">
+                  <article className="panel-paper mt-2.5 space-y-1.5 rounded-xl p-3 sm:p-3.5">
                     {item.species && (
                       <p className="eyebrow text-primary">{item.species}</p>
                     )}
-                    <h2 className="text-letterpress truncate text-[15px] font-semibold leading-snug">
+                    <h2 className="text-letterpress line-clamp-2 text-sm font-semibold leading-snug sm:text-[15px]">
                       {item.name}
                     </h2>
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">

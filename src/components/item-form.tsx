@@ -122,7 +122,7 @@ export function ItemForm({
     >
       <FormSection title="Foto e identificación">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-          <div className="relative aspect-square w-full max-w-56 shrink-0 overflow-hidden rounded-xl border border-border/70 bg-muted shadow-sm">
+          <div className="relative mx-auto aspect-square w-full max-w-56 shrink-0 overflow-hidden rounded-xl border border-border/70 bg-muted shadow-sm sm:mx-0">
             {photoUrl ? (
               <>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -372,7 +372,7 @@ export function ItemForm({
         <Button
           type="submit"
           disabled={isPending || uploading}
-          className="h-10 px-6"
+          className="h-11 w-full px-6 sm:h-10 sm:w-auto"
         >
           {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
           {submitLabel}
