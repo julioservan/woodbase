@@ -17,10 +17,6 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Protege toda la app salvo /login, assets estáticos, favicon y
-  // /api/upload (recibe el callback server-to-server de Vercel Blob; la
-  // autorización se valida dentro de la propia ruta).
-  matcher: [
-    "/((?!login|api/upload|_next/static|_next/image|favicon.ico|icon.svg).*)",
-  ],
+  // Protege toda la app salvo /login, assets estáticos y favicon.
+  matcher: ["/((?!login|_next/static|_next/image|favicon.ico|icon.svg).*)"],
 };

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { upload } from "@vercel/blob/client";
 import { Camera, Loader2, Sparkles, X } from "lucide-react";
 import type { WoodItem } from "@/lib/db/schema";
 import { CUT_LABELS, CUT_TYPES, formatInches } from "@/lib/utils";
@@ -67,20 +66,15 @@ export function ItemForm({
     setUploading(true);
     setUploadError(null);
     try {
-      // Nombre limpio propio: los nombres de fotos de móvil (espacios,
-      // acentos, .HEIC) pueden romper la petición de subida.
-      const extFromType = file.type.split("/")[1]?.replace("jpeg", "jpg");
-      const extFromName = file.name.split(".").pop()?.toLowerCase();
-      const ext = (extFromType || extFromName || "jpg").replace(
-        /[^a-z0-9]/g,
-        "",
-      );
-      const blob = await upload(`wood/${crypto.randomUUID()}.${ext}`, file, {
-        access: "public",
-        handleUploadUrl: "/api/upload",
-        contentType: file.type || undefined,
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
       });
-      setPhotoUrl(blob.url);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Error al subir la foto");
+      setPhotoUrl(data.url);
       setIdentifyResult(null);
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : "Error al subir la foto");

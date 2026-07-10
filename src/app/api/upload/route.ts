@@ -1,53 +1,49 @@
-import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
+import { put } from "@vercel/blob";
 
 export const runtime = "nodejs";
 
-// Subida directa navegador → Vercel Blob. El navegador pide un token a esta
-// ruta y sube el archivo directo al store, sin pasar el archivo por la
-// función serverless (evita el límite de 4,5 MB de Vercel). El token
-// BLOB_READ_WRITE_TOKEN nunca llega al cliente.
-export async function POST(request: Request): Promise<NextResponse> {
-  let body: HandleUploadBody;
-  try {
-    body = (await request.json()) as HandleUploadBody;
-  } catch {
+const MAX_SIZE_BYTES = 8 * 1024 * 1024; // 8 MB
+
+// La foto va cliente → esta función → Vercel Blob. El token
+// BLOB_READ_WRITE_TOKEN vive solo en el servidor y put() lo lee del entorno.
+export async function POST(request: Request) {
+  const formData = await request.formData();
+  const file = formData.get("file");
+
+  if (!(file instanceof File)) {
     return NextResponse.json(
-      { error: "Recarga la página e inténtalo de nuevo" },
+      { error: "Falta el archivo 'file'" },
+      { status: 400 },
+    );
+  }
+  if (!file.type.startsWith("image/")) {
+    return NextResponse.json(
+      { error: "Solo se permiten imágenes" },
+      { status: 400 },
+    );
+  }
+  if (file.size > MAX_SIZE_BYTES) {
+    return NextResponse.json(
+      { error: "La imagen supera el máximo de 8 MB" },
       { status: 400 },
     );
   }
 
-  try {
-    const jsonResponse = await handleUpload({
-      body,
-      request,
-      // Genera el token de subida directa. No validamos la sesión aquí
-      // porque la librería de Blob pide el token sin enviar la cookie
-      // httpOnly. Riesgo acotado: solo imágenes, 15 MB máx., rutas con
-      // sufijo aleatorio, y toda la app va detrás de APP_PASSWORD.
-      onBeforeGenerateToken: async () => ({
-        allowedContentTypes: [
-          "image/jpeg",
-          "image/png",
-          "image/gif",
-          "image/webp",
-          "image/heic",
-          "image/heif",
-        ],
-        maximumSizeInBytes: 15 * 1024 * 1024, // 15 MB
-        addRandomSuffix: true,
-      }),
-      // Vercel llama a este callback (server-to-server) al terminar la subida.
-      onUploadCompleted: async () => {},
-    });
+  const extFromType = file.type.split("/")[1]?.replace("jpeg", "jpg");
+  const ext = (extFromType || "jpg").replace(/[^a-z0-9]/g, "");
 
-    return NextResponse.json(jsonResponse);
+  try {
+    const blob = await put(`wood/${crypto.randomUUID()}.${ext}`, file, {
+      access: "public",
+      contentType: file.type,
+    });
+    return NextResponse.json({ url: blob.url });
   } catch (error) {
-    console.error("Error en /api/upload:", error);
+    console.error("Error al subir a Blob:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Error al subir" },
-      { status: 400 },
+      { error: "No se pudo subir la foto" },
+      { status: 500 },
     );
   }
 }
