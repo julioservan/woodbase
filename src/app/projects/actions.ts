@@ -115,6 +115,15 @@ export async function importParts(projectId: string, rows: ImportedPart[]) {
   revalidatePath(`/projects/${projectId}`);
 }
 
+/** Guarda qué tablas del inventario se usan en este proyecto (vacío = todas). */
+export async function updateProjectBoards(projectId: string, ids: string[]) {
+  await getDb()
+    .update(projects)
+    .set({ boardIds: ids, updatedAt: new Date() })
+    .where(eq(projects.id, projectId));
+  revalidatePath(`/projects/${projectId}`);
+}
+
 /** Cambia la especie de una pieza del despiece (selector rápido en línea). */
 export async function updatePartSpecies(
   projectId: string,
@@ -156,10 +165,14 @@ export async function applyCuts(
     .from(projectParts)
     .where(eq(projectParts.projectId, projectId))
     .orderBy(asc(projectParts.createdAt), asc(projectParts.id));
-  const inventory = await db
+  const inventoryAll = await db
     .select()
     .from(woodItems)
     .orderBy(asc(woodItems.createdAt), asc(woodItems.id));
+  const inventory =
+    project.boardIds.length > 0
+      ? inventoryAll.filter((i) => project.boardIds.includes(i.id))
+      : inventoryAll;
 
   const boards = expandBoards(inventory);
   const woodParts = parts.filter((p) => !isNonWoodMaterial(p.species));

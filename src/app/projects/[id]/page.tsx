@@ -11,6 +11,7 @@ import {
   deleteProject,
 } from "@/app/projects/actions";
 import { Header } from "@/components/header";
+import { BoardPicker } from "@/components/board-picker";
 import { CutDiagram } from "@/components/cut-diagram";
 import { PartSpeciesSelect } from "@/components/part-species-select";
 import { StepImport } from "@/components/step-import";
@@ -78,16 +79,23 @@ export default async function ProjectDetailPage({
   const woodParts = parts.filter((p) => !isNonWoodMaterial(p.species));
   const nonWoodParts = parts.filter((p) => isNonWoodMaterial(p.species));
 
+  // Inventario completo (para el selector de maderas) y el subconjunto
+  // elegido para este proyecto (vacío = todas).
+  const inventory = await db
+    .select()
+    .from(woodItems)
+    .orderBy(asc(woodItems.createdAt), asc(woodItems.id));
+  const boardFilterActive = project.boardIds.length > 0;
+  const usableInventory = boardFilterActive
+    ? inventory.filter((i) => project.boardIds.includes(i.id))
+    : inventory;
+
   // El optimizador solo corre cuando se pide (?optimizar=1).
   let result = null;
   let boards: BoardUnit[] = [];
   let glueNotes: GlueNote[] = [];
   if (optimizar && woodParts.length > 0) {
-    const inventory = await db
-      .select()
-      .from(woodItems)
-      .orderBy(asc(woodItems.createdAt), asc(woodItems.id));
-    boards = expandBoards(inventory);
+    boards = expandBoards(usableInventory);
     // Piezas que no caben enteras → tiras/capas encolables.
     const prepared = planGlueUps(expandParts(woodParts), boards);
     glueNotes = prepared.notes;
@@ -275,6 +283,22 @@ export default async function ProjectDetailPage({
               )}
             </div>
 
+            <BoardPicker
+              projectId={project.id}
+              boards={inventory.map((i) => ({
+                id: i.id,
+                name: i.name,
+                species: i.species,
+                lengthIn: i.lengthIn,
+                widthIn: i.widthIn,
+                thicknessIn: i.thicknessIn,
+                quantity: i.quantity,
+                unit: i.unit,
+                isScrap: i.isScrap,
+              }))}
+              selected={project.boardIds}
+            />
+
             {result && nonWoodParts.length > 0 && (
               <p className="rounded-xl border border-[#6b6255]/30 bg-[#6b6255]/10 px-4 py-2.5 text-xs text-[#5a5245]">
                 Fuera del plan de corte (otros materiales):{" "}
@@ -337,7 +361,9 @@ export default async function ProjectDetailPage({
             {shopping.length > 0 && (
               <div className="rounded-xl border border-[#a83c2a]/40 bg-[#a83c2a]/10 px-4 py-3 text-sm text-[#7c2d20]">
                 <p className="mb-1.5 font-semibold">
-                  Te falta madera — lista de la compra:
+                  Te falta madera
+                  {boardFilterActive && " (solo con las maderas elegidas)"} —
+                  lista de la compra:
                 </p>
                 <ul className="space-y-1">
                   {shopping.map((s, i) => (

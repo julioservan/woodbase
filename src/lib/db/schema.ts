@@ -66,6 +66,8 @@ export const projects = pgTable("projects", {
   name: text("name").notNull(),
   description: text("description"),
   status: projectStatusEnum("status").notNull().default("idea"),
+  // Tablas del inventario elegidas para este proyecto; vacío = todas.
+  boardIds: uuid("board_ids").array().notNull().default([]),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()

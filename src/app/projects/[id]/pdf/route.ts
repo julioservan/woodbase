@@ -46,10 +46,14 @@ export async function GET(
   let unplacedNames: string[] = [];
   let glueNotes: GlueNote[] = [];
   if (parts.length > 0) {
-    const inventory = await db
+    const inventoryAll = await db
       .select()
       .from(woodItems)
       .orderBy(asc(woodItems.createdAt), asc(woodItems.id));
+    const inventory =
+      project.boardIds.length > 0
+        ? inventoryAll.filter((i) => project.boardIds.includes(i.id))
+        : inventoryAll;
     const boards = expandBoards(inventory);
     const woodParts = parts.filter((p) => !isNonWoodMaterial(p.species));
     const prepared = planGlueUps(expandParts(woodParts), boards);

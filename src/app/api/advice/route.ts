@@ -97,10 +97,15 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-  const inventory = await db
+  const inventoryAll = await db
     .select()
     .from(woodItems)
     .orderBy(asc(woodItems.createdAt), asc(woodItems.id));
+  // Si el proyecto tiene maderas elegidas, el consejo opina solo sobre esas.
+  const inventory =
+    project.boardIds.length > 0
+      ? inventoryAll.filter((i) => project.boardIds.includes(i.id))
+      : inventoryAll;
 
   const boards = expandBoards(inventory);
   const woodParts = parts.filter((p) => !isNonWoodMaterial(p.species));

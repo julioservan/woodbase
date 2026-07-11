@@ -1,0 +1,1 @@
+ALTER TABLE "projects" ADD COLUMN "board_ids" uuid[] DEFAULT '{}' NOT NULL;
