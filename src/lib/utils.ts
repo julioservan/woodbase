@@ -88,6 +88,42 @@ export const CUT_LABELS: Record<CutType, string> = {
   plywood: "Plywood",
 };
 
+// Especies habituales: clásicas de EE. UU. + las del taller, en formato
+// "inglés (español)". La opción "Otra…" de los formularios abre campo libre.
+export const SPECIES_OPTIONS = [
+  "ash (fresno)",
+  "beech (haya)",
+  "birch (abedul)",
+  "bocote",
+  "bubinga",
+  "cedar (cedro)",
+  "cherry (cerezo)",
+  "claro walnut (nogal claro)",
+  "cocobolo",
+  "douglas fir (abeto de Douglas)",
+  "granadillo",
+  "hickory (pacana)",
+  "mahogany (caoba)",
+  "mango",
+  "maple (arce)",
+  "narra",
+  "olive (olivo)",
+  "padauk",
+  "pine (pino)",
+  "poplar (álamo)",
+  "purpleheart (amaranto)",
+  "red oak (roble rojo)",
+  "sande",
+  "sapele (sapeli)",
+  "siberian elm (olmo siberiano)",
+  "sucupira",
+  "teak (teca)",
+  "walnut (nogal)",
+  "wenge (wengué)",
+  "white oak (roble blanco)",
+  "zebrawood (cebrano)",
+];
+
 /**
  * Talla visual de la pieza en la estantería (como tallas de camiseta).
  * El factor es la fracción de la altura del área de exhibición que ocupa.

@@ -86,6 +86,7 @@ export const projectParts = pgTable("project_parts", {
   lengthIn: real("length_in").notNull(),
   widthIn: real("width_in").notNull(),
   thicknessIn: real("thickness_in").notNull(),
+  species: text("species"),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()

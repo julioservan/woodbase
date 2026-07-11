@@ -9,6 +9,7 @@ import {
   CUT_TYPES,
   DISPLAY_SIZES,
   formatInches,
+  SPECIES_OPTIONS,
 } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,42 +24,6 @@ interface IdentifyResult {
   alternatives: { species: string; confidence: number }[];
   reasoning: string;
 }
-
-// Especies habituales: clásicas de EE. UU. + las del taller, en formato
-// "inglés (español)". Si falta alguna, la opción "Otra…" abre campo libre.
-const SPECIES_OPTIONS = [
-  "ash (fresno)",
-  "beech (haya)",
-  "birch (abedul)",
-  "bocote",
-  "bubinga",
-  "cedar (cedro)",
-  "cherry (cerezo)",
-  "claro walnut (nogal claro)",
-  "cocobolo",
-  "douglas fir (abeto de Douglas)",
-  "granadillo",
-  "hickory (pacana)",
-  "mahogany (caoba)",
-  "mango",
-  "maple (arce)",
-  "narra",
-  "olive (olivo)",
-  "padauk",
-  "pine (pino)",
-  "poplar (álamo)",
-  "purpleheart (amaranto)",
-  "red oak (roble rojo)",
-  "sande",
-  "sapele (sapeli)",
-  "siberian elm (olmo siberiano)",
-  "sucupira",
-  "teak (teca)",
-  "walnut (nogal)",
-  "wenge (wengué)",
-  "white oak (roble blanco)",
-  "zebrawood (cebrano)",
-];
 
 const UNIT_OPTIONS = [
   "tablones",

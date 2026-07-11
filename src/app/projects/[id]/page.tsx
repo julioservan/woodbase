@@ -12,6 +12,7 @@ import {
 } from "@/app/projects/actions";
 import { Header } from "@/components/header";
 import { CutDiagram } from "@/components/cut-diagram";
+import { StepImport } from "@/components/step-import";
 import { PROJECT_STATUS_LABELS } from "@/components/project-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -132,6 +133,11 @@ export default async function ProjectDetailPage({
                         {formatInches(part.lengthIn)}″ ×{" "}
                         {formatInches(part.widthIn)}″ ×{" "}
                         {formatInches(part.thicknessIn)}″
+                        {part.species && (
+                          <span className="ml-2 font-medium text-primary">
+                            {part.species}
+                          </span>
+                        )}
                       </p>
                     </div>
                     <form action={removePart}>
@@ -180,6 +186,10 @@ export default async function ProjectDetailPage({
             Medidas en pulgadas; acepta fracciones (<code>3/4</code>,{" "}
             <code>1 1/2</code>...).
           </p>
+
+          <div className="mt-4 border-t border-[#c9b28c]/60 pt-4">
+            <StepImport projectId={project.id} />
+          </div>
         </section>
 
         {/* Optimizador */}

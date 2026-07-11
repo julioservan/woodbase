@@ -77,6 +77,39 @@ export async function addPart(projectId: string, formData: FormData) {
   revalidatePath(`/projects/${projectId}`);
 }
 
+export interface ImportedPart {
+  name: string;
+  quantity: number;
+  lengthIn: number;
+  widthIn: number;
+  thicknessIn: number;
+  species: string | null;
+}
+
+/** Alta en bloque del despiece revisado del importador STEP. */
+export async function importParts(projectId: string, rows: ImportedPart[]) {
+  const clean = rows
+    .filter(
+      (r) =>
+        r.name.trim() &&
+        [r.lengthIn, r.widthIn, r.thicknessIn].every(
+          (v) => Number.isFinite(v) && v > 0,
+        ),
+    )
+    .map((r) => ({
+      projectId,
+      name: r.name.trim(),
+      quantity: Math.max(1, Math.floor(r.quantity)),
+      lengthIn: Math.round(r.lengthIn * 32) / 32,
+      widthIn: Math.round(r.widthIn * 32) / 32,
+      thicknessIn: Math.round(r.thicknessIn * 32) / 32,
+      species: r.species?.trim() || null,
+    }));
+  if (clean.length === 0) throw new Error("No hay piezas válidas que importar");
+  await getDb().insert(projectParts).values(clean);
+  revalidatePath(`/projects/${projectId}`);
+}
+
 export async function deletePart(projectId: string, partId: string) {
   await getDb().delete(projectParts).where(eq(projectParts.id, partId));
   revalidatePath(`/projects/${projectId}`);
