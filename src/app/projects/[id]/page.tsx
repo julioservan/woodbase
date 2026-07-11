@@ -4,12 +4,7 @@ import { asc, eq } from "drizzle-orm";
 import { ArrowLeft, Axe, FileText, Pencil, Plus, Trash2 } from "lucide-react";
 import { getDb } from "@/lib/db";
 import { projectParts, projects, woodItems } from "@/lib/db/schema";
-import {
-  addPart,
-  applyCuts,
-  deletePart,
-  deleteProject,
-} from "@/app/projects/actions";
+import { addPart, deletePart, deleteProject } from "@/app/projects/actions";
 import { Header } from "@/components/header";
 import { BoardPicker } from "@/components/board-picker";
 import { CutDiagram } from "@/components/cut-diagram";
@@ -43,10 +38,10 @@ export default async function ProjectDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ optimizar?: string; aplicado?: string }>;
+  searchParams: Promise<{ optimizar?: string }>;
 }) {
   const { id } = await params;
-  const { optimizar, aplicado } = await searchParams;
+  const { optimizar } = await searchParams;
   const db = getDb();
 
   const [project] = await db
@@ -311,13 +306,6 @@ export default async function ProjectDetailPage({
               </p>
             )}
 
-            {aplicado && (
-              <p className="rounded-xl border border-[#4a7a3a]/40 bg-[#4a7a3a]/10 px-4 py-2.5 text-sm font-medium text-[#3d6530]">
-                Cortes aplicados: la tabla se ha consumido del inventario y las
-                sobras están dadas de alta como scraps.
-              </p>
-            )}
-
             {/* Veredicto: ¿hay madera suficiente en el inventario? */}
             {result && result.unplaced.length === 0 && (
               <p className="rounded-xl border border-[#4a7a3a]/40 bg-[#4a7a3a]/10 px-4 py-2.5 text-sm font-medium text-[#3d6530]">
@@ -390,52 +378,49 @@ export default async function ProjectDetailPage({
               </p>
             )}
 
-            {result?.plans.map((plan) => {
-              const applyThisPlan = applyCuts.bind(
-                null,
-                project.id,
-                plan.board.key,
-              );
-              return (
-                <article
-                  key={plan.board.key}
-                  className="panel-paper space-y-3 rounded-2xl p-4 sm:p-5"
-                >
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <h3 className="text-letterpress text-lg font-semibold">
-                      {plan.board.name}
-                      {plan.board.unitIndex > 0 &&
-                        ` (unidad ${plan.board.unitIndex + 1})`}
-                    </h3>
-                    <p className="text-xs tabular-nums text-muted-foreground">
-                      {formatInches(plan.board.lengthIn)}″ ×{" "}
-                      {formatInches(plan.board.widthIn)}″ ×{" "}
-                      {formatInches(plan.board.thicknessIn)}″ · aprovechas el{" "}
-                      {Math.round(plan.utilization * 100)}%
+            {result?.plans.map((plan) => (
+              <article
+                key={plan.board.key}
+                className="panel-paper space-y-3 rounded-2xl p-4 sm:p-5"
+              >
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <h3 className="text-letterpress text-lg font-semibold">
+                    {plan.board.name}
+                    {plan.board.unitIndex > 0 &&
+                      ` (unidad ${plan.board.unitIndex + 1})`}
+                  </h3>
+                  <p className="text-xs tabular-nums text-muted-foreground">
+                    {formatInches(plan.board.lengthIn)}″ ×{" "}
+                    {formatInches(plan.board.widthIn)}″ ×{" "}
+                    {formatInches(plan.board.thicknessIn)}″ · aprovechas el{" "}
+                    {Math.round(plan.utilization * 100)}%
+                  </p>
+                </div>
+                <CutDiagram plan={plan} />
+                <div className="space-y-1 text-xs text-muted-foreground">
+                  {plan.placements.some((p) => p.needsPlaning) && (
+                    <p>
+                      ⚠ Algunas piezas necesitan cepillado: la tabla es más
+                      gruesa que la pieza.
                     </p>
-                  </div>
-                  <CutDiagram plan={plan} />
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="text-xs text-muted-foreground">
-                      {plan.placements.some((p) => p.needsPlaning) && (
-                        <p>
-                          ⚠ Algunas piezas necesitan cepillado: la tabla es más
-                          gruesa que la pieza.
-                        </p>
-                      )}
-                      <p>
-                        Kerf de sierra de 1/8″ descontado · veta a lo largo.
-                      </p>
-                    </div>
-                    <form action={applyThisPlan}>
-                      <Button type="submit" size="sm" className="h-9 rounded-lg px-4">
-                        Aplicar cortes
-                      </Button>
-                    </form>
-                  </div>
-                </article>
-              );
-            })}
+                  )}
+                  <p>Kerf de sierra de 1/8″ descontado · veta a lo largo.</p>
+                  {/* Sugerencia manual: la app no toca el inventario sola */}
+                  <p className="pt-1">
+                    Cuando lo cortes, acuérdate de actualizar el inventario a
+                    mano: descuenta «{plan.board.name}»
+                    {plan.leftovers.length > 0 &&
+                      ` y da de alta las sobras aprovechables (según el plano: ${plan.leftovers
+                        .map(
+                          (s) =>
+                            `${formatInches(s.lengthIn)}″ × ${formatInches(s.widthIn)}″`,
+                        )
+                        .join(", ")}) con sus medidas y fotos reales`}
+                    .
+                  </p>
+                </div>
+              </article>
+            ))}
 
             <WorkshopAdvice
               projectId={project.id}

@@ -2,16 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { asc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db";
-import { projectParts, projects, woodItems } from "@/lib/db/schema";
-import { isNonWoodMaterial, parseInches } from "@/lib/utils";
-import {
-  expandBoards,
-  expandParts,
-  optimize,
-  planGlueUps,
-} from "@/lib/optimizer";
+import { projectParts, projects } from "@/lib/db/schema";
+import { parseInches } from "@/lib/utils";
 
 const STATUSES = ["idea", "en_curso", "terminado"] as const;
 type Status = (typeof STATUSES)[number];
@@ -142,81 +136,7 @@ export async function deletePart(projectId: string, partId: string) {
   revalidatePath(`/projects/${projectId}`);
 }
 
-/**
- * Aplica los cortes planificados de UNA tabla: la consume del inventario
- * (resta una unidad o borra la pieza) y da de alta las sobras como scraps.
- * El plan se recalcula aquí: el optimizador es determinista, así que coincide
- * con lo que se mostró en pantalla.
- */
-export async function applyCuts(
-  projectId: string,
-  boardKey: string,
-): Promise<void> {
-  const db = getDb();
-  const [project] = await db
-    .select()
-    .from(projects)
-    .where(eq(projects.id, projectId))
-    .limit(1);
-  if (!project) throw new Error("Proyecto no encontrado");
-
-  const parts = await db
-    .select()
-    .from(projectParts)
-    .where(eq(projectParts.projectId, projectId))
-    .orderBy(asc(projectParts.createdAt), asc(projectParts.id));
-  const inventoryAll = await db
-    .select()
-    .from(woodItems)
-    .orderBy(asc(woodItems.createdAt), asc(woodItems.id));
-  const inventory =
-    project.boardIds.length > 0
-      ? inventoryAll.filter((i) => project.boardIds.includes(i.id))
-      : inventoryAll;
-
-  const boards = expandBoards(inventory);
-  const woodParts = parts.filter((p) => !isNonWoodMaterial(p.species));
-  const prepared = planGlueUps(expandParts(woodParts), boards);
-  const result = optimize(prepared.instances, boards);
-  const plan = result.plans.find((p) => p.board.key === boardKey);
-  if (!plan) throw new Error("Ese plan de corte ya no es válido");
-
-  const [item] = await db
-    .select()
-    .from(woodItems)
-    .where(eq(woodItems.id, plan.board.itemId))
-    .limit(1);
-  if (!item) throw new Error("La tabla ya no está en el inventario");
-
-  // Consume una unidad de la tabla.
-  if (item.quantity > 1) {
-    await db
-      .update(woodItems)
-      .set({ quantity: item.quantity - 1, updatedAt: new Date() })
-      .where(eq(woodItems.id, item.id));
-  } else {
-    await db.delete(woodItems).where(eq(woodItems.id, item.id));
-  }
-
-  // Alta de las sobras aprovechables como scraps.
-  for (const leftover of plan.leftovers) {
-    await db.insert(woodItems).values({
-      name: `Sobra de ${item.name}`,
-      species: item.species,
-      quantity: 1,
-      unit: "piezas",
-      lengthIn: Math.round(leftover.lengthIn * 16) / 16,
-      widthIn: Math.round(leftover.widthIn * 16) / 16,
-      thicknessIn: item.thicknessIn,
-      cutType: item.cutType,
-      isScrap: true,
-      displaySize: "s",
-      location: item.location,
-      notes: `Sobra de los cortes del proyecto «${project.name}»`,
-    });
-  }
-
-  revalidatePath("/");
-  revalidatePath(`/projects/${projectId}`);
-  redirect(`/projects/${projectId}?optimizar=1&aplicado=1`);
-}
+// Nota: el antiguo «Aplicar cortes» (consumir la tabla y crear scraps
+// automáticamente) se retiró a propósito: el inventario lo actualiza el
+// usuario a mano, con las medidas y fotos reales de sus sobras. El plan de
+// corte solo lo sugiere.
