@@ -6,7 +6,12 @@ import { asc, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { projectParts, projects, woodItems } from "@/lib/db/schema";
 import { parseInches } from "@/lib/utils";
-import { expandBoards, expandParts, optimize } from "@/lib/optimizer";
+import {
+  expandBoards,
+  expandParts,
+  optimize,
+  planGlueUps,
+} from "@/lib/optimizer";
 
 const STATUSES = ["idea", "en_curso", "terminado"] as const;
 type Status = (typeof STATUSES)[number];
@@ -156,7 +161,9 @@ export async function applyCuts(
     .from(woodItems)
     .orderBy(asc(woodItems.createdAt), asc(woodItems.id));
 
-  const result = optimize(expandParts(parts), expandBoards(inventory));
+  const boards = expandBoards(inventory);
+  const prepared = planGlueUps(expandParts(parts), boards);
+  const result = optimize(prepared.instances, boards);
   const plan = result.plans.find((p) => p.board.key === boardKey);
   if (!plan) throw new Error("Ese plan de corte ya no es válido");
 

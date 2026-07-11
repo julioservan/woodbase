@@ -10,6 +10,12 @@ export const KERF_IN = 0.125; // ~1/8″ de sierra
 const MIN_SCRAP_IN = 4; // sobras menores de 4×4″ no se consideran aprovechables
 const MAX_UNITS_PER_ITEM = 10;
 
+export interface GlueInfo {
+  /** Eje encolado: tiras al canto (ancho) o capas laminadas (grosor). */
+  axis: "ancho" | "grosor";
+  pieces: number;
+}
+
 export interface PartInstance {
   key: string; // `${partId}#${n}`
   partId: string;
@@ -19,6 +25,17 @@ export interface PartInstance {
   thicknessIn: number;
   /** Especie deseada; null = cualquier madera vale. */
   species: string | null;
+  /** Presente si esta instancia es una tira/capa de un encolado. */
+  glue?: GlueInfo;
+}
+
+export interface GlueNote {
+  partName: string;
+  count: number; // cuántas piezas iguales se encolan así
+  axis: "ancho" | "grosor";
+  pieces: number;
+  pieceDim: number; // ancho de tira o grosor de capa (con demasía)
+  targetDim: number; // ancho o grosor final de la pieza
 }
 
 export interface BoardUnit {
@@ -220,6 +237,102 @@ export function expandBoards(
   });
 }
 
+const WIDTH_GLUE_ALLOW_IN = 0.125; // demasía de canteado por tira
+const THICK_GLUE_ALLOW_IN = 1 / 16; // demasía de cepillado por capa
+const MAX_STRIPS = 4;
+const MAX_LAYERS = 3;
+
+function fitsSomeBoard(part: PartInstance, boards: BoardUnit[]): boolean {
+  return boards.some(
+    (b) =>
+      fitsSpecies(b, part) &&
+      fitsThickness(b, part) &&
+      b.lengthIn >= part.lengthIn &&
+      b.widthIn >= part.widthIn,
+  );
+}
+
+/**
+ * Encolados: si una pieza no cabe entera en ninguna tabla, se parte en tiras
+ * al canto (demasiado ancha) o en capas laminadas (demasiado gruesa), con
+ * demasía de canteado/cepillado. Cada tira/capa se corta como pieza normal y
+ * el resultado indica cómo encolarlas.
+ */
+export function planGlueUps(
+  instances: PartInstance[],
+  boards: BoardUnit[],
+): { instances: PartInstance[]; notes: GlueNote[] } {
+  const out: PartInstance[] = [];
+  const noteMap = new Map<string, GlueNote>();
+
+  for (const inst of instances) {
+    if (fitsSomeBoard(inst, boards)) {
+      out.push(inst);
+      continue;
+    }
+
+    let transformed = false;
+    // Tiras al canto: la pieza es más ancha que cualquier tabla.
+    for (let k = 2; k <= MAX_STRIPS && !transformed; k++) {
+      const stripW = inst.widthIn / k + WIDTH_GLUE_ALLOW_IN;
+      if (fitsSomeBoard({ ...inst, widthIn: stripW }, boards)) {
+        for (let i = 0; i < k; i++) {
+          out.push({
+            ...inst,
+            key: `${inst.key}~t${i}`,
+            name: `${inst.name} · tira ${i + 1}/${k}`,
+            widthIn: stripW,
+            glue: { axis: "ancho", pieces: k },
+          });
+        }
+        const noteKey = `${inst.name}|ancho|${k}`;
+        const note = noteMap.get(noteKey) ?? {
+          partName: inst.name,
+          count: 0,
+          axis: "ancho" as const,
+          pieces: k,
+          pieceDim: stripW,
+          targetDim: inst.widthIn,
+        };
+        note.count += 1;
+        noteMap.set(noteKey, note);
+        transformed = true;
+      }
+    }
+    // Capas laminadas: la pieza es más gruesa que cualquier tabla.
+    for (let k = 2; k <= MAX_LAYERS && !transformed; k++) {
+      const layerT = inst.thicknessIn / k + THICK_GLUE_ALLOW_IN;
+      if (fitsSomeBoard({ ...inst, thicknessIn: layerT }, boards)) {
+        for (let i = 0; i < k; i++) {
+          out.push({
+            ...inst,
+            key: `${inst.key}~c${i}`,
+            name: `${inst.name} · capa ${i + 1}/${k}`,
+            thicknessIn: layerT,
+            glue: { axis: "grosor", pieces: k },
+          });
+        }
+        const noteKey = `${inst.name}|grosor|${k}`;
+        const note = noteMap.get(noteKey) ?? {
+          partName: inst.name,
+          count: 0,
+          axis: "grosor" as const,
+          pieces: k,
+          pieceDim: layerT,
+          targetDim: inst.thicknessIn,
+        };
+        note.count += 1;
+        noteMap.set(noteKey, note);
+        transformed = true;
+      }
+    }
+    // Sin transformación posible: se queda tal cual y saldrá en faltantes.
+    if (!transformed) out.push(inst);
+  }
+
+  return { instances: out, notes: [...noteMap.values()] };
+}
+
 /**
  * Explica por qué una pieza no cupo: qué le falta al inventario para ella.
  * Se evalúa contra TODAS las tablas (usadas o no) para dar el motivo real.
@@ -232,11 +345,11 @@ export function unplacedReason(part: PartInstance, boards: BoardUnit[]): string 
   }
   const thick = ofSpecies.filter((b) => fitsThickness(b, part));
   if (thick.length === 0) {
-    return `ninguna tabla con grosor ≥ ${formatInches(part.thicknessIn)}″`;
+    return `ninguna tabla con grosor ≥ ${formatInches(part.thicknessIn)}″ (ni laminando ${MAX_LAYERS} capas)`;
   }
   const wide = thick.filter((b) => b.widthIn >= part.widthIn);
   if (wide.length === 0) {
-    return `ninguna tabla con ancho ≥ ${formatInches(part.widthIn)}″ (y grosor suficiente)`;
+    return `ninguna tabla con ancho ≥ ${formatInches(part.widthIn)}″ (ni encolando ${MAX_STRIPS} tiras)`;
   }
   const long = wide.filter((b) => b.lengthIn >= part.lengthIn);
   if (long.length === 0) {

@@ -2,7 +2,13 @@ import { NextResponse } from "next/server";
 import { asc, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { projectParts, projects, woodItems } from "@/lib/db/schema";
-import { expandBoards, expandParts, optimize } from "@/lib/optimizer";
+import {
+  expandBoards,
+  expandParts,
+  optimize,
+  planGlueUps,
+  type GlueNote,
+} from "@/lib/optimizer";
 import { buildCutListPdf } from "@/lib/pdf/cutlist";
 
 export const runtime = "nodejs";
@@ -37,17 +43,27 @@ export async function GET(
 
   let plans: ReturnType<typeof optimize>["plans"] = [];
   let unplacedNames: string[] = [];
+  let glueNotes: GlueNote[] = [];
   if (parts.length > 0) {
     const inventory = await db
       .select()
       .from(woodItems)
       .orderBy(asc(woodItems.createdAt), asc(woodItems.id));
-    const result = optimize(expandParts(parts), expandBoards(inventory));
+    const boards = expandBoards(inventory);
+    const prepared = planGlueUps(expandParts(parts), boards);
+    glueNotes = prepared.notes;
+    const result = optimize(prepared.instances, boards);
     plans = result.plans;
     unplacedNames = [...new Set(result.unplaced.map((p) => p.name))];
   }
 
-  const pdf = await buildCutListPdf(project, parts, plans, unplacedNames);
+  const pdf = await buildCutListPdf(
+    project,
+    parts,
+    plans,
+    unplacedNames,
+    glueNotes,
+  );
   const filename = `${project.name.replace(/[^\p{L}\p{N} _-]/gu, "").trim() || "proyecto"} - cut list.pdf`;
 
   return new NextResponse(new Uint8Array(pdf), {

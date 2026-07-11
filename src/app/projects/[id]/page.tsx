@@ -21,8 +21,10 @@ import {
   expandBoards,
   expandParts,
   optimize,
+  planGlueUps,
   unplacedReason,
   type BoardUnit,
+  type GlueNote,
 } from "@/lib/optimizer";
 import { boardFeet, formatInches } from "@/lib/utils";
 
@@ -73,13 +75,17 @@ export default async function ProjectDetailPage({
   // El optimizador solo corre cuando se pide (?optimizar=1).
   let result = null;
   let boards: BoardUnit[] = [];
+  let glueNotes: GlueNote[] = [];
   if (optimizar && parts.length > 0) {
     const inventory = await db
       .select()
       .from(woodItems)
       .orderBy(asc(woodItems.createdAt), asc(woodItems.id));
     boards = expandBoards(inventory);
-    result = optimize(expandParts(parts), boards);
+    // Piezas que no caben enteras → tiras/capas encolables.
+    const prepared = planGlueUps(expandParts(parts), boards);
+    glueNotes = prepared.notes;
+    result = optimize(prepared.instances, boards);
   }
 
   // Lista de la compra: piezas sin sitio agrupadas, con el motivo real.
@@ -275,8 +281,40 @@ export default async function ProjectDetailPage({
               <p className="rounded-xl border border-[#4a7a3a]/40 bg-[#4a7a3a]/10 px-4 py-2.5 text-sm font-medium text-[#3d6530]">
                 ✓ Tienes madera suficiente: todo el despiece sale de tu
                 inventario con {result.plans.length}{" "}
-                {result.plans.length === 1 ? "tabla" : "tablas"}.
+                {result.plans.length === 1 ? "tabla" : "tablas"}
+                {glueNotes.length > 0 &&
+                  ` y ${glueNotes.reduce((s, n) => s + n.count, 0)} ${
+                    glueNotes.reduce((s, n) => s + n.count, 0) === 1
+                      ? "encolado"
+                      : "encolados"
+                  }`}
+                .
               </p>
+            )}
+
+            {/* Encolados: cómo juntar tiras/capas para las piezas grandes */}
+            {glueNotes.length > 0 && (
+              <div className="rounded-xl border border-[#8a5a24]/40 bg-amber/15 px-4 py-3 text-sm text-[#5c3c14]">
+                <p className="mb-1.5 font-semibold">
+                  Encolados necesarios (las tiras/capas ya están en los
+                  planos):
+                </p>
+                <ul className="space-y-0.5">
+                  {glueNotes.map((n, i) => (
+                    <li key={i} className="tabular-nums">
+                      {n.count > 1 ? `${n.count} × ` : ""}
+                      {n.partName}:{" "}
+                      {n.axis === "ancho"
+                        ? `encolar ${n.pieces} tiras de ${formatInches(n.pieceDim)}″ de ancho para llegar a ${formatInches(n.targetDim)}″`
+                        : `laminar ${n.pieces} capas de ${formatInches(n.pieceDim)}″ de grosor para llegar a ${formatInches(n.targetDim)}″`}
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-1.5 text-xs opacity-80">
+                  Demasía incluida: 1/8″ por tira para cantear y 1/16″ por capa
+                  para cepillar tras el encolado.
+                </p>
+              </div>
             )}
             {shopping.length > 0 && (
               <div className="rounded-xl border border-[#a83c2a]/40 bg-[#a83c2a]/10 px-4 py-3 text-sm text-[#7c2d20]">

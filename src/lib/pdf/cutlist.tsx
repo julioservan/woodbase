@@ -11,7 +11,7 @@ import {
   renderToBuffer,
 } from "@react-pdf/renderer";
 import type { Project, ProjectPart } from "@/lib/db/schema";
-import type { BoardPlan } from "@/lib/optimizer";
+import type { BoardPlan, GlueNote } from "@/lib/optimizer";
 import { formatInches } from "@/lib/utils";
 
 // Fracción estilo taller con guion: 35-1/4
@@ -158,6 +158,7 @@ export async function buildCutListPdf(
   parts: ProjectPart[],
   plans: BoardPlan[],
   unplacedNames: string[],
+  glueNotes: GlueNote[] = [],
 ): Promise<Buffer> {
   const dateStr = new Intl.DateTimeFormat("es-ES", {
     dateStyle: "long",
@@ -231,6 +232,26 @@ export async function buildCutListPdf(
                 <PdfDiagram plan={plan} />
               </View>
             ))}
+            {glueNotes.length > 0 && (
+              <View style={{ marginTop: 6 }}>
+                <Text style={{ fontFamily: "Helvetica-Bold", fontSize: 10 }}>
+                  Encolados
+                </Text>
+                {glueNotes.map((n, i) => (
+                  <Text key={i} style={{ fontSize: 9, marginTop: 2 }}>
+                    {n.count > 1 ? `${n.count} x ` : ""}
+                    {n.partName}:{" "}
+                    {n.axis === "ancho"
+                      ? `encolar ${n.pieces} tiras de ${frac(n.pieceDim)}" de ancho hasta ${frac(n.targetDim)}"`
+                      : `laminar ${n.pieces} capas de ${frac(n.pieceDim)}" de grosor hasta ${frac(n.targetDim)}"`}
+                  </Text>
+                ))}
+                <Text style={styles.note}>
+                  Demasia incluida: 1/8" por tira (canteado) y 1/16" por capa
+                  (cepillado tras encolar).
+                </Text>
+              </View>
+            )}
             {unplacedNames.length > 0 && (
               <Text style={styles.note}>
                 Sin sitio en el inventario: {unplacedNames.join(", ")}.
