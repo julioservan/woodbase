@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { asc, eq } from "drizzle-orm";
-import { ArrowLeft, Axe, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Axe, FileText, Pencil, Plus, Trash2 } from "lucide-react";
 import { getDb } from "@/lib/db";
 import { projectParts, projects, woodItems } from "@/lib/db/schema";
 import {
@@ -92,6 +92,16 @@ export default async function ProjectDetailPage({
             )}
           </div>
           <div className="flex gap-2">
+            {parts.length > 0 && (
+              <a
+                href={`/projects/${project.id}/pdf`}
+                target="_blank"
+                rel="noopener"
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#8a5a24] bg-gradient-to-b from-[#f0bd6b] to-[#cf8f33] px-4 text-sm font-semibold text-[#3b2712] [text-shadow:0_1px_0_rgba(255,255,255,0.4)] shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_2px_4px_rgba(0,0,0,0.45)] transition-all hover:from-[#f4c67c] hover:to-[#d6993f] active:shadow-[inset_0_2px_5px_rgba(70,45,15,0.45)]"
+              >
+                <FileText className="h-3.5 w-3.5" /> PDF del taller
+              </a>
+            )}
             <Link
               href={`/projects/${project.id}/edit`}
               className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#b09468] bg-gradient-to-b from-[#fffdf5] to-[#efe4c9] px-4 text-sm font-semibold text-foreground [text-shadow:0_1px_0_rgba(255,255,255,0.7)] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_2px_rgba(43,30,19,0.3)] transition-all hover:to-[#f6eeda] active:shadow-[inset_0_2px_5px_rgba(90,70,40,0.3)]"
