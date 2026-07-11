@@ -52,3 +52,45 @@ export const woodItems = pgTable("wood_items", {
 
 export type WoodItem = typeof woodItems.$inferSelect;
 export type NewWoodItem = typeof woodItems.$inferInsert;
+
+// ---------- Proyectos (v2) ----------
+
+export const projectStatusEnum = pgEnum("project_status", [
+  "idea",
+  "en_curso",
+  "terminado",
+]);
+
+export const projects = pgTable("projects", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  description: text("description"),
+  status: projectStatusEnum("status").notNull().default("idea"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+// Despiece: las piezas que necesita un proyecto, en pulgadas.
+export const projectParts = pgTable("project_parts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  quantity: real("quantity").notNull().default(1),
+  lengthIn: real("length_in").notNull(),
+  widthIn: real("width_in").notNull(),
+  thicknessIn: real("thickness_in").notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type Project = typeof projects.$inferSelect;
+export type ProjectPart = typeof projectParts.$inferSelect;
