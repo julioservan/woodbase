@@ -144,6 +144,13 @@ export function sizeScale(size: string | null | undefined): number {
 }
 
 /**
+ * Unidades "contables": la cantidad representa un número de piezas físicas
+ * (a diferencia de pies tablares/lineales/cuadrados, que son volumen o área).
+ */
+export const COUNTABLE_UNIT_RE =
+  /tabl[oó]n|pieza|unidad|bloque|palo|panel|plancha/i;
+
+/**
  * Pies tablares (board feet) de una pieza: L × A × G (pulgadas) / 144.
  */
 export function boardFeet(

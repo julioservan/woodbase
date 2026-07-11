@@ -11,6 +11,7 @@ import { DeleteItemButton } from "@/components/delete-item-button";
 import { Badge, CutBadge } from "@/components/ui/badge";
 import {
   boardFeet,
+  COUNTABLE_UNIT_RE,
   formatConfidence,
   formatDimensions,
   sizeScale,
@@ -67,8 +68,7 @@ export default async function ItemDetailPage({
     ?.split("?")[0]
     .toLowerCase()
     .endsWith(".png");
-  const isCountable =
-    /tabl[oó]n|pieza|unidad|bloque|palo|panel|plancha/i.test(item.unit);
+  const isCountable = COUNTABLE_UNIT_RE.test(item.unit);
   const stackCopies =
     isCutout && isCountable
       ? Math.min(Math.max(Math.floor(item.quantity), 1), 8) - 1

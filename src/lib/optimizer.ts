@@ -4,6 +4,8 @@
 // a lo largo de la tabla), descuenta el kerf de la sierra y devuelve las
 // sobras aprovechables como futuros scraps.
 
+import { COUNTABLE_UNIT_RE, formatInches } from "./utils";
+
 export const KERF_IN = 0.125; // ~1/8″ de sierra
 const MIN_SCRAP_IN = 4; // sobras menores de 4×4″ no se consideran aprovechables
 const MAX_UNITS_PER_ITEM = 10;
@@ -189,6 +191,7 @@ export function expandBoards(
     name: string;
     species: string | null;
     quantity: number;
+    unit: string;
     lengthIn: number | null;
     widthIn: number | null;
     thicknessIn: number | null;
@@ -198,10 +201,12 @@ export function expandBoards(
     if (item.lengthIn == null || item.widthIn == null || item.thicknessIn == null) {
       return [];
     }
-    const units = Math.min(
-      Math.max(1, Math.floor(item.quantity)),
-      MAX_UNITS_PER_ITEM,
-    );
+    // Solo las unidades contables multiplican tablas: "10 pies tablares" es
+    // volumen de una única tabla, no diez tablones.
+    const countable = COUNTABLE_UNIT_RE.test(item.unit);
+    const units = countable
+      ? Math.min(Math.max(1, Math.floor(item.quantity)), MAX_UNITS_PER_ITEM)
+      : 1;
     return Array.from({ length: units }, (_, i) => ({
       key: `${item.id}#${i}`,
       itemId: item.id,
@@ -213,6 +218,31 @@ export function expandBoards(
       thicknessIn: item.thicknessIn!,
     }));
   });
+}
+
+/**
+ * Explica por qué una pieza no cupo: qué le falta al inventario para ella.
+ * Se evalúa contra TODAS las tablas (usadas o no) para dar el motivo real.
+ */
+export function unplacedReason(part: PartInstance, boards: BoardUnit[]): string {
+  if (boards.length === 0) return "no hay tablas con medidas en el inventario";
+  const ofSpecies = boards.filter((b) => fitsSpecies(b, part));
+  if (ofSpecies.length === 0) {
+    return `no hay ${part.species} en el inventario`;
+  }
+  const thick = ofSpecies.filter((b) => fitsThickness(b, part));
+  if (thick.length === 0) {
+    return `ninguna tabla con grosor ≥ ${formatInches(part.thicknessIn)}″`;
+  }
+  const wide = thick.filter((b) => b.widthIn >= part.widthIn);
+  if (wide.length === 0) {
+    return `ninguna tabla con ancho ≥ ${formatInches(part.widthIn)}″ (y grosor suficiente)`;
+  }
+  const long = wide.filter((b) => b.lengthIn >= part.lengthIn);
+  if (long.length === 0) {
+    return `ninguna tabla con largo ≥ ${formatInches(part.lengthIn)}″ (y ancho/grosor suficientes)`;
+  }
+  return "cabe en tus tablas, pero no junto al resto de piezas: hace falta otra tabla";
 }
 
 /**

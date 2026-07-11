@@ -17,7 +17,13 @@ import { StepImport } from "@/components/step-import";
 import { PROJECT_STATUS_LABELS } from "@/components/project-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { expandBoards, expandParts, optimize } from "@/lib/optimizer";
+import {
+  expandBoards,
+  expandParts,
+  optimize,
+  unplacedReason,
+  type BoardUnit,
+} from "@/lib/optimizer";
 import { boardFeet, formatInches } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -66,15 +72,17 @@ export default async function ProjectDetailPage({
 
   // El optimizador solo corre cuando se pide (?optimizar=1).
   let result = null;
+  let boards: BoardUnit[] = [];
   if (optimizar && parts.length > 0) {
     const inventory = await db
       .select()
       .from(woodItems)
       .orderBy(asc(woodItems.createdAt), asc(woodItems.id));
-    result = optimize(expandParts(parts), expandBoards(inventory));
+    boards = expandBoards(inventory);
+    result = optimize(expandParts(parts), boards);
   }
 
-  // Lista de la compra: piezas sin sitio agrupadas, con sus pies tablares.
+  // Lista de la compra: piezas sin sitio agrupadas, con el motivo real.
   const shopping =
     result && result.unplaced.length > 0
       ? [
@@ -86,12 +94,13 @@ export default async function ProjectDetailPage({
                 species: p.species,
                 count: 0,
                 bf: 0,
+                reason: unplacedReason(p, boards),
               };
               entry.count += 1;
               entry.bf += boardFeet(p.lengthIn, p.widthIn, p.thicknessIn) ?? 0;
               map.set(key, entry);
               return map;
-            }, new Map<string, { name: string; species: string | null; count: number; bf: number }>())
+            }, new Map<string, { name: string; species: string | null; count: number; bf: number; reason: string }>())
             .values(),
         ]
       : [];
@@ -274,12 +283,15 @@ export default async function ProjectDetailPage({
                 <p className="mb-1.5 font-semibold">
                   Te falta madera — lista de la compra:
                 </p>
-                <ul className="space-y-0.5">
+                <ul className="space-y-1">
                   {shopping.map((s, i) => (
                     <li key={i} className="tabular-nums">
                       {s.count} × {s.name}
                       {s.species ? ` · ${s.species}` : " · cualquier madera"}
                       {s.bf > 0 && ` · ~${s.bf.toFixed(2)} BF`}
+                      <span className="block text-xs font-normal opacity-80">
+                        → {s.reason}
+                      </span>
                     </li>
                   ))}
                 </ul>
