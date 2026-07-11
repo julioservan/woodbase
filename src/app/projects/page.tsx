@@ -3,6 +3,7 @@ import { desc, eq, sql } from "drizzle-orm";
 import { Hammer, Plus } from "lucide-react";
 import { getDb } from "@/lib/db";
 import { projectParts, projects } from "@/lib/db/schema";
+import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { PROJECT_STATUS_LABELS } from "@/components/project-form";
 
@@ -83,6 +84,7 @@ export default async function ProjectsPage() {
           </div>
         )}
       </main>
+      <Footer />
     </>
   );
 }

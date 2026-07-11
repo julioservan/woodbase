@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { and, asc, desc, eq, ilike, or } from "drizzle-orm";
-import { MapPin } from "lucide-react";
+import { MapPin, Plus } from "lucide-react";
 import { getDb } from "@/lib/db";
 import { woodItems } from "@/lib/db/schema";
+import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { InventoryFilters } from "@/components/inventory-filters";
 import { WoodPhoto } from "@/components/wood-photo";
@@ -84,16 +85,24 @@ export default async function HomePage({
     <>
       <Header />
       <main className="mx-auto max-w-5xl px-4 py-6 pb-[max(1.75rem,env(safe-area-inset-bottom))] sm:py-7">
-        <div className="mb-5 flex flex-wrap items-baseline justify-between gap-2">
-          <h1 className="text-letterpress font-display text-4xl font-semibold tracking-tight">
-            Inventario
-          </h1>
-          {items.length > 0 && (
-            <p className="text-letterpress text-sm font-medium text-foreground/60">
-              {items.length} {items.length === 1 ? "pieza" : "piezas"} en el
-              taller
-            </p>
-          )}
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-baseline gap-3">
+            <h1 className="text-letterpress font-display text-4xl font-semibold tracking-tight">
+              Inventario
+            </h1>
+            {items.length > 0 && (
+              <p className="text-letterpress hidden text-sm font-medium text-foreground/60 sm:block">
+                {items.length} {items.length === 1 ? "pieza" : "piezas"} en el
+                taller
+              </p>
+            )}
+          </div>
+          <Link
+            href="/items/new"
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#8a5a24] bg-gradient-to-b from-[#f0bd6b] to-[#cf8f33] px-4 text-sm font-semibold text-[#3b2712] [text-shadow:0_1px_0_rgba(255,255,255,0.4)] shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_2px_4px_rgba(0,0,0,0.45)] transition-all hover:from-[#f4c67c] hover:to-[#d6993f] active:shadow-[inset_0_2px_5px_rgba(70,45,15,0.45)]"
+          >
+            <Plus className="h-4 w-4" /> Añadir pieza
+          </Link>
         </div>
 
         {/* Buscador y filtros: se aplican al cambiar, sin botón */}
@@ -276,6 +285,7 @@ export default async function HomePage({
           </div>
         )}
       </main>
+      <Footer />
     </>
   );
 }
