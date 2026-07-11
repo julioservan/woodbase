@@ -14,6 +14,7 @@ import { Header } from "@/components/header";
 import { CutDiagram } from "@/components/cut-diagram";
 import { PartSpeciesSelect } from "@/components/part-species-select";
 import { StepImport } from "@/components/step-import";
+import { WorkshopAdvice } from "@/components/workshop-advice";
 import { PROJECT_STATUS_LABELS } from "@/components/project-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -393,6 +394,10 @@ export default async function ProjectDetailPage({
               );
             })}
 
+            <WorkshopAdvice
+              projectId={project.id}
+              parts={parts.map((p) => ({ id: p.id, name: p.name }))}
+            />
           </section>
         )}
 
