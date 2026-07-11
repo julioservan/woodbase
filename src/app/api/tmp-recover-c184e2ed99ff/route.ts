@@ -69,6 +69,20 @@ export async function GET() {
     blob_error: blobError,
   };
 
-  console.log("TMP-RECOVER-INSPECT", JSON.stringify(report));
+  // Los logs de Vercel truncan líneas largas: una línea por elemento.
+  for (const item of report.mango_items) {
+    console.log("TMP-RECOVER-ITEM", JSON.stringify(item));
+  }
+  for (const blob of orphanBlobs) {
+    console.log("TMP-RECOVER-ORPHAN", JSON.stringify(blob));
+  }
+  console.log(
+    "TMP-RECOVER-SUMMARY",
+    JSON.stringify({
+      items: report.mango_items.length,
+      orphans: orphanBlobs.length,
+      blob_error: blobError,
+    }),
+  );
   return NextResponse.json(report);
 }
