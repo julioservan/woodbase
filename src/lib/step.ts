@@ -165,10 +165,35 @@ export function parseStep(text: string): DetectedPart[] {
     return v.length === 3 && v.every(Number.isFinite) ? (v as Vec) : null;
   };
 
+  const refsOf = (body: string): number[] =>
+    [...body.matchAll(/#(\d+)/g)].map((r) => Number(r[1]));
+
+  // Ejes de un AXIS2_PLACEMENT_3D: origen, normal z y dirección x en el plano.
+  const parseAxis = (
+    axisId: number,
+  ): { origin: Vec; z: Vec; x: Vec } | null => {
+    const refs = refsOf(entities.get(axisId) ?? "");
+    if (refs.length < 2) return null;
+    const origin = parseVec(refs[0]);
+    const zRaw = parseVec(refs[1]);
+    if (!origin || !zRaw) return null;
+    const z = normalize(zRaw);
+    let x = refs[2] != null ? parseVec(refs[2]) : null;
+    if (!x) {
+      const helper: Vec = Math.abs(z[0]) < 0.9 ? [1, 0, 0] : [0, 1, 0];
+      x = cross(z, helper);
+    }
+    return { origin, z, x: normalize(x as Vec) };
+  };
+
   const measured: { name: string; dims: [number, number, number] }[] = [];
 
   for (const solid of solids) {
-    // Clausura de referencias del sólido.
+    // Clausura de referencias del sólido. OJO: solo cuentan los puntos con
+    // significado geométrico real — vértices, muestras de círculos/elipses y
+    // puntos de control de splines. Los CARTESIAN_POINT sueltos (anclas de
+    // LINE, orígenes de PLANE/AXIS) pueden caer en cualquier parte del
+    // espacio e inflaban la caja.
     const seen = new Set<number>([solid.id]);
     const queue = [solid.id];
     const points: Vec[] = [];
@@ -177,22 +202,40 @@ export function parseStep(text: string): DetectedPart[] {
       const id = queue.pop()!;
       const body = entities.get(id);
       if (!body) continue;
-      if (body.startsWith("CARTESIAN_POINT")) {
-        const p = parseVec(id);
+      if (body.startsWith("VERTEX_POINT")) {
+        const p = parseVec(refsOf(body)[0]);
         if (p) points.push(p);
-      } else if (body.startsWith("PLANE")) {
-        const axisId = Number(body.match(/#(\d+)/)?.[1]);
-        const axisBody = entities.get(axisId);
-        const refs = [...(axisBody ?? "").matchAll(/#(\d+)/g)].map((r) =>
-          Number(r[1]),
-        );
-        if (refs.length >= 2) {
-          const normal = parseVec(refs[1]);
-          if (normal) planeNormals.push(normalize(normal));
+      } else if (body.startsWith("CIRCLE") || body.startsWith("ELLIPSE")) {
+        // CIRCLE('',#axis,r) / ELLIPSE('',#axis,r1,r2): muestreo de 8 puntos.
+        const axis = parseAxis(refsOf(body)[0]);
+        const radii = body.match(/,\s*([0-9.Ee+-]+)\s*(?:,\s*([0-9.Ee+-]+)\s*)?\)$/);
+        const r1 = radii ? Number(radii[1]) : NaN;
+        const r2 = radii?.[2] != null ? Number(radii[2]) : r1;
+        if (axis && Number.isFinite(r1)) {
+          const y = normalize(cross(axis.z, axis.x));
+          for (let k = 0; k < 8; k++) {
+            const a = (k * Math.PI) / 4;
+            points.push([
+              axis.origin[0] + r1 * Math.cos(a) * axis.x[0] + r2 * Math.sin(a) * y[0],
+              axis.origin[1] + r1 * Math.cos(a) * axis.x[1] + r2 * Math.sin(a) * y[1],
+              axis.origin[2] + r1 * Math.cos(a) * axis.x[2] + r2 * Math.sin(a) * y[2],
+            ]);
+          }
         }
+      } else if (body.includes("B_SPLINE")) {
+        // Puntos de control: acotan la curva/superficie (envolvente convexa).
+        for (const rid of refsOf(body)) {
+          const rb = entities.get(rid);
+          if (rb?.startsWith("CARTESIAN_POINT")) {
+            const p = parseVec(rid);
+            if (p) points.push(p);
+          }
+        }
+      } else if (body.startsWith("PLANE")) {
+        const axis = parseAxis(refsOf(body)[0]);
+        if (axis) planeNormals.push(axis.z);
       }
-      for (const ref of body.matchAll(/#(\d+)/g)) {
-        const rid = Number(ref[1]);
+      for (const rid of refsOf(body)) {
         if (!seen.has(rid)) {
           seen.add(rid);
           queue.push(rid);
