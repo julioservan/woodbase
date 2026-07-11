@@ -2,8 +2,7 @@
 
 import { useTransition } from "react";
 import { updatePartSpecies } from "@/app/projects/actions";
-import { SPECIES_OPTIONS } from "@/lib/utils";
-import { cn } from "@/lib/utils";
+import { cn, NON_WOOD_MATERIALS, SPECIES_OPTIONS } from "@/lib/utils";
 
 // Selector rápido de especie en cada fila del despiece: guarda al cambiar.
 // Las especies que ya tienes en el inventario salen primero.
@@ -24,8 +23,9 @@ export function PartSpeciesSelect({
   const current = species ?? "";
   const known =
     !current ||
-    inventorySpecies.some((s) => s.toLowerCase() === current.toLowerCase()) ||
-    rest.some((s) => s.toLowerCase() === current.toLowerCase());
+    [...inventorySpecies, ...rest, ...NON_WOOD_MATERIALS].some(
+      (s) => s.toLowerCase() === current.toLowerCase(),
+    );
 
   return (
     <select
@@ -52,13 +52,21 @@ export function PartSpeciesSelect({
           ))}
         </optgroup>
       )}
-      <optgroup label="Otras">
+      <optgroup label="Otras maderas">
         {rest.map((s) => (
           <option key={s} value={s}>
             {s}
           </option>
         ))}
         {!known && <option value={current}>{current}</option>}
+      </optgroup>
+      {/* No se cortan de tablas: quedan fuera del plan de corte */}
+      <optgroup label="Otros materiales">
+        {NON_WOOD_MATERIALS.map((m) => (
+          <option key={m} value={m}>
+            {m}
+          </option>
+        ))}
       </optgroup>
     </select>
   );

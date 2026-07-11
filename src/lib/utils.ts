@@ -144,6 +144,17 @@ export function sizeScale(size: string | null | undefined): number {
 }
 
 /**
+ * Materiales no-madera para piezas de proyecto: se listan en el despiece y
+ * el PDF, pero quedan fuera del plan de corte (no salen de tablas).
+ */
+export const NON_WOOD_MATERIALS = ["metal", "vidrio", "comprado / herraje"];
+
+export function isNonWoodMaterial(species: string | null | undefined): boolean {
+  if (!species) return false;
+  return /metal|vidrio|acr[ií]lico|herraje|comprad/i.test(species);
+}
+
+/**
  * Unidades "contables": la cantidad representa un número de piezas físicas
  * (a diferencia de pies tablares/lineales/cuadrados, que son volumen o área).
  */

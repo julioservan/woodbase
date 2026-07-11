@@ -10,6 +10,7 @@ import {
   type GlueNote,
 } from "@/lib/optimizer";
 import { buildCutListPdf } from "@/lib/pdf/cutlist";
+import { isNonWoodMaterial } from "@/lib/utils";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -50,7 +51,8 @@ export async function GET(
       .from(woodItems)
       .orderBy(asc(woodItems.createdAt), asc(woodItems.id));
     const boards = expandBoards(inventory);
-    const prepared = planGlueUps(expandParts(parts), boards);
+    const woodParts = parts.filter((p) => !isNonWoodMaterial(p.species));
+    const prepared = planGlueUps(expandParts(woodParts), boards);
     glueNotes = prepared.notes;
     const result = optimize(prepared.instances, boards);
     plans = result.plans;

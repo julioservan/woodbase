@@ -10,7 +10,7 @@ import {
   planGlueUps,
   unplacedReason,
 } from "@/lib/optimizer";
-import { formatInches } from "@/lib/utils";
+import { formatInches, isNonWoodMaterial } from "@/lib/utils";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -103,7 +103,8 @@ export async function POST(request: Request) {
     .orderBy(asc(woodItems.createdAt), asc(woodItems.id));
 
   const boards = expandBoards(inventory);
-  const prepared = planGlueUps(expandParts(parts), boards);
+  const woodParts = parts.filter((p) => !isNonWoodMaterial(p.species));
+  const prepared = planGlueUps(expandParts(woodParts), boards);
   const result = optimize(prepared.instances, boards);
 
   const context = {

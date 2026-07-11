@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { asc, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { projectParts, projects, woodItems } from "@/lib/db/schema";
-import { parseInches } from "@/lib/utils";
+import { isNonWoodMaterial, parseInches } from "@/lib/utils";
 import {
   expandBoards,
   expandParts,
@@ -162,7 +162,8 @@ export async function applyCuts(
     .orderBy(asc(woodItems.createdAt), asc(woodItems.id));
 
   const boards = expandBoards(inventory);
-  const prepared = planGlueUps(expandParts(parts), boards);
+  const woodParts = parts.filter((p) => !isNonWoodMaterial(p.species));
+  const prepared = planGlueUps(expandParts(woodParts), boards);
   const result = optimize(prepared.instances, boards);
   const plan = result.plans.find((p) => p.board.key === boardKey);
   if (!plan) throw new Error("Ese plan de corte ya no es válido");

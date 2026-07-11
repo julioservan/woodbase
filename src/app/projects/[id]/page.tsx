@@ -27,7 +27,7 @@ import {
   type BoardUnit,
   type GlueNote,
 } from "@/lib/optimizer";
-import { boardFeet, formatInches } from "@/lib/utils";
+import { boardFeet, formatInches, isNonWoodMaterial } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -73,18 +73,23 @@ export default async function ProjectDetailPage({
     .map((r) => r.species)
     .filter((s): s is string => !!s);
 
+  // Las piezas de otros materiales (metal, herrajes...) no se cortan de
+  // tablas: se listan aparte y quedan fuera del plan.
+  const woodParts = parts.filter((p) => !isNonWoodMaterial(p.species));
+  const nonWoodParts = parts.filter((p) => isNonWoodMaterial(p.species));
+
   // El optimizador solo corre cuando se pide (?optimizar=1).
   let result = null;
   let boards: BoardUnit[] = [];
   let glueNotes: GlueNote[] = [];
-  if (optimizar && parts.length > 0) {
+  if (optimizar && woodParts.length > 0) {
     const inventory = await db
       .select()
       .from(woodItems)
       .orderBy(asc(woodItems.createdAt), asc(woodItems.id));
     boards = expandBoards(inventory);
     // Piezas que no caben enteras → tiras/capas encolables.
-    const prepared = planGlueUps(expandParts(parts), boards);
+    const prepared = planGlueUps(expandParts(woodParts), boards);
     glueNotes = prepared.notes;
     result = optimize(prepared.instances, boards);
   }
@@ -269,6 +274,18 @@ export default async function ProjectDetailPage({
                 </Link>
               )}
             </div>
+
+            {result && nonWoodParts.length > 0 && (
+              <p className="rounded-xl border border-[#6b6255]/30 bg-[#6b6255]/10 px-4 py-2.5 text-xs text-[#5a5245]">
+                Fuera del plan de corte (otros materiales):{" "}
+                {nonWoodParts
+                  .map(
+                    (p) =>
+                      `${Math.floor(p.quantity)} × ${p.name} (${p.species})`,
+                  )
+                  .join(" · ")}
+              </p>
+            )}
 
             {aplicado && (
               <p className="rounded-xl border border-[#4a7a3a]/40 bg-[#4a7a3a]/10 px-4 py-2.5 text-sm font-medium text-[#3d6530]">

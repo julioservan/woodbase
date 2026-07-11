@@ -4,7 +4,12 @@ import { useRef, useState, useTransition } from "react";
 import { FileUp, Loader2, RotateCw, Trash2 } from "lucide-react";
 import { parseStep, type DetectedPart } from "@/lib/step";
 import { importParts } from "@/app/projects/actions";
-import { cn, formatInches, SPECIES_OPTIONS } from "@/lib/utils";
+import {
+  cn,
+  formatInches,
+  NON_WOOD_MATERIALS,
+  SPECIES_OPTIONS,
+} from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -24,6 +29,7 @@ interface ReviewRow {
   dims: [number, number, number];
   rotation: number;
   species: string;
+  note?: string;
 }
 
 function rowDims(row: ReviewRow): [number, number, number] {
@@ -36,28 +42,87 @@ export function StepImport({ projectId }: { projectId: string }) {
   const [fileName, setFileName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [verifyNote, setVerifyNote] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handleFile(file: File) {
     setError(null);
+    setVerifyNote(null);
+    let detected: DetectedPart[];
     try {
-      const detected: DetectedPart[] = parseStep(await file.text());
-      setFileName(file.name);
-      setRows(
-        detected.map((p) => ({
-          include: true,
-          name: p.name,
-          quantity: p.quantity,
-          dims: p.dims,
-          rotation: 0,
-          species: "",
-        })),
-      );
+      detected = parseStep(await file.text());
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "No se pudo leer el archivo",
       );
+      return;
+    }
+    setFileName(file.name);
+    setRows(
+      detected.map((p) => ({
+        include: true,
+        name: p.name,
+        quantity: p.quantity,
+        dims: p.dims,
+        rotation: 0,
+        species: "",
+      })),
+    );
+
+    // Revisión de sentido común con Claude: gira grosores implausibles,
+    // marca herrajes como comprados y avisa de piezas curvas/en L.
+    setVerifying(true);
+    try {
+      const res = await fetch("/api/verify-import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          parts: detected.map((p) => ({
+            name: p.name,
+            quantity: p.quantity,
+            dims: p.dims,
+          })),
+        }),
+      });
+      if (!res.ok) throw new Error();
+      const data: {
+        parts: {
+          name: string;
+          rotation: number;
+          suggested_material: string;
+          note: string;
+        }[];
+      } = await res.json();
+      setRows((prev) =>
+        prev
+          ? prev.map((row) => {
+              const v = data.parts.find(
+                (p) =>
+                  p.name.trim().toLowerCase() === row.name.trim().toLowerCase(),
+              );
+              if (!v) return row;
+              return {
+                ...row,
+                rotation:
+                  v.rotation >= 0 && v.rotation <= 2 ? v.rotation : row.rotation,
+                species:
+                  v.suggested_material !== "madera"
+                    ? v.suggested_material
+                    : row.species,
+                note: v.note || undefined,
+              };
+            })
+          : prev,
+      );
+      setVerifyNote("Medidas revisadas por la IA — repasa sus notas y ajusta lo que veas.");
+    } catch {
+      setVerifyNote(
+        "La revisión con IA no está disponible ahora; revisa los grosores a mano.",
+      );
+    } finally {
+      setVerifying(false);
     }
   }
 
@@ -147,6 +212,15 @@ export function StepImport({ projectId }: { projectId: string }) {
           Cancelar
         </button>
       </div>
+      {verifying && (
+        <p className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Revisando medidas y
+          materiales con la IA…
+        </p>
+      )}
+      {!verifying && verifyNote && (
+        <p className="text-xs text-muted-foreground">{verifyNote}</p>
+      )}
 
       <ul className="divide-y divide-[#c9b28c]/60">
         {rows.map((row, i) => {
@@ -201,16 +275,22 @@ export function StepImport({ projectId }: { projectId: string }) {
                 >
                   <RotateCw className="h-3 w-3" /> Girar veta
                 </button>
-                {suspicious && (
+                {row.note ? (
                   <span className="text-xs font-medium text-[#8a5a24]">
-                    ⚠ ¿grosor real? gira la pieza o revisa (¿curva/en L?)
+                    ⚠ {row.note}
                   </span>
+                ) : (
+                  suspicious && (
+                    <span className="text-xs font-medium text-[#8a5a24]">
+                      ⚠ ¿grosor real? gira la pieza o revisa (¿curva/en L?)
+                    </span>
+                  )
                 )}
                 <Select
                   value={row.species}
                   onChange={(e) => update(i, { species: e.target.value })}
                   className="h-8 w-auto min-w-32 text-xs sm:h-7"
-                  aria-label="Especie"
+                  aria-label="Especie o material"
                 >
                   <option value="">Especie…</option>
                   {SPECIES_OPTIONS.map((s) => (
@@ -218,6 +298,13 @@ export function StepImport({ projectId }: { projectId: string }) {
                       {s}
                     </option>
                   ))}
+                  <optgroup label="Otros materiales">
+                    {NON_WOOD_MATERIALS.map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ))}
+                  </optgroup>
                 </Select>
                 <button
                   type="button"
