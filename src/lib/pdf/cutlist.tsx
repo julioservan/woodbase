@@ -12,7 +12,7 @@ import {
 } from "@react-pdf/renderer";
 import type { Project, ProjectPart } from "@/lib/db/schema";
 import type { BoardPlan } from "@/lib/optimizer";
-import { boardFeet, formatInches } from "@/lib/utils";
+import { formatInches } from "@/lib/utils";
 
 // Fracción estilo taller con guion: 35-1/4
 function frac(v: number | null): string {
@@ -60,15 +60,9 @@ const styles = StyleSheet.create({
     fontSize: 9,
   },
   cQty: { width: "8%" },
-  cName: { width: "30%" },
+  cName: { width: "34%" },
   cDim: { width: "12%", textAlign: "right" },
-  cSpecies: { width: "22%", paddingLeft: 8 },
-  cBf: { width: "10%", textAlign: "right" },
-  totalRow: {
-    flexDirection: "row",
-    paddingVertical: 5,
-    fontFamily: "Helvetica-Bold",
-  },
+  cSpecies: { width: "22%", paddingLeft: 10 },
   note: { fontSize: 8, color: "#6b5a45", marginTop: 4 },
   planCard: { marginBottom: 14 },
   planTitle: { fontSize: 11, fontFamily: "Helvetica-Bold", marginBottom: 2 },
@@ -168,10 +162,6 @@ export async function buildCutListPdf(
   const dateStr = new Intl.DateTimeFormat("es-ES", {
     dateStyle: "long",
   }).format(new Date());
-  const totalBf = parts.reduce((sum, p) => {
-    const bf = boardFeet(p.lengthIn, p.widthIn, p.thicknessIn);
-    return sum + (bf ?? 0) * Math.max(1, Math.floor(p.quantity));
-  }, 0);
 
   const doc = (
     <Document
@@ -199,11 +189,9 @@ export async function buildCutListPdf(
           <Text style={styles.cDim}>Ancho</Text>
           <Text style={styles.cDim}>Grosor</Text>
           <Text style={styles.cSpecies}>Especie</Text>
-          <Text style={styles.cBf}>BF</Text>
         </View>
         {parts.map((p) => {
           const qty = Math.max(1, Math.floor(p.quantity));
-          const bf = boardFeet(p.lengthIn, p.widthIn, p.thicknessIn);
           return (
             <View key={p.id} style={styles.row} wrap={false}>
               <Text style={styles.cQty}>{qty}</Text>
@@ -212,18 +200,9 @@ export async function buildCutListPdf(
               <Text style={styles.cDim}>{frac(p.widthIn)}"</Text>
               <Text style={styles.cDim}>{frac(p.thicknessIn)}"</Text>
               <Text style={styles.cSpecies}>{p.species ?? "-"}</Text>
-              <Text style={styles.cBf}>
-                {bf != null ? (bf * qty).toFixed(2) : "-"}
-              </Text>
             </View>
           );
         })}
-        <View style={styles.totalRow}>
-          <Text style={{ width: "90%", textAlign: "right", paddingRight: 8 }}>
-            Total pies tablares
-          </Text>
-          <Text style={styles.cBf}>{totalBf.toFixed(2)}</Text>
-        </View>
         <Text style={styles.note}>
           Medidas finales de pieza. Anade demasias de corte y cepillado segun
           tu maquina; kerf de sierra estimado 1/8".

@@ -110,6 +110,19 @@ export async function importParts(projectId: string, rows: ImportedPart[]) {
   revalidatePath(`/projects/${projectId}`);
 }
 
+/** Cambia la especie de una pieza del despiece (selector rápido en línea). */
+export async function updatePartSpecies(
+  projectId: string,
+  partId: string,
+  species: string,
+) {
+  await getDb()
+    .update(projectParts)
+    .set({ species: species.trim() || null })
+    .where(eq(projectParts.id, partId));
+  revalidatePath(`/projects/${projectId}`);
+}
+
 export async function deletePart(projectId: string, partId: string) {
   await getDb().delete(projectParts).where(eq(projectParts.id, partId));
   revalidatePath(`/projects/${projectId}`);

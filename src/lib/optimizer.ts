@@ -15,6 +15,8 @@ export interface PartInstance {
   lengthIn: number;
   widthIn: number;
   thicknessIn: number;
+  /** Especie deseada; null = cualquier madera vale. */
+  species: string | null;
 }
 
 export interface BoardUnit {
@@ -64,6 +66,12 @@ function fitsThickness(board: { thicknessIn: number }, part: { thicknessIn: numb
   return board.thicknessIn >= part.thicknessIn - 0.01;
 }
 
+function fitsSpecies(board: BoardUnit, part: PartInstance) {
+  if (!part.species) return true;
+  if (!board.species) return false;
+  return board.species.trim().toLowerCase() === part.species.trim().toLowerCase();
+}
+
 /** Empaqueta lo que quepa de `parts` en una tabla. No muta `parts`. */
 function packBoard(
   board: BoardUnit,
@@ -73,6 +81,7 @@ function packBoard(
   const candidates = parts
     .filter(
       (p) =>
+        fitsSpecies(board, p) &&
         fitsThickness(board, p) &&
         p.lengthIn <= board.lengthIn &&
         p.widthIn <= board.widthIn,
@@ -158,6 +167,7 @@ export function expandParts(
     lengthIn: number;
     widthIn: number;
     thicknessIn: number;
+    species?: string | null;
   }[],
 ): PartInstance[] {
   return parts.flatMap((p) =>
@@ -168,6 +178,7 @@ export function expandParts(
       lengthIn: p.lengthIn,
       widthIn: p.widthIn,
       thicknessIn: p.thicknessIn,
+      species: p.species ?? null,
     })),
   );
 }

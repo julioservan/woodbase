@@ -12,12 +12,13 @@ import {
 } from "@/app/projects/actions";
 import { Header } from "@/components/header";
 import { CutDiagram } from "@/components/cut-diagram";
+import { PartSpeciesSelect } from "@/components/part-species-select";
 import { StepImport } from "@/components/step-import";
 import { PROJECT_STATUS_LABELS } from "@/components/project-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { expandBoards, expandParts, optimize } from "@/lib/optimizer";
-import { formatInches } from "@/lib/utils";
+import { boardFeet, formatInches } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -54,6 +55,15 @@ export default async function ProjectDetailPage({
   const addPartToProject = addPart.bind(null, project.id);
   const deleteThisProject = deleteProject.bind(null, project.id);
 
+  // Especies presentes en el inventario, para el selector rápido de piezas.
+  const speciesRows = await db
+    .selectDistinct({ species: woodItems.species })
+    .from(woodItems)
+    .orderBy(woodItems.species);
+  const inventorySpecies = speciesRows
+    .map((r) => r.species)
+    .filter((s): s is string => !!s);
+
   // El optimizador solo corre cuando se pide (?optimizar=1).
   let result = null;
   if (optimizar && parts.length > 0) {
@@ -63,6 +73,28 @@ export default async function ProjectDetailPage({
       .orderBy(asc(woodItems.createdAt), asc(woodItems.id));
     result = optimize(expandParts(parts), expandBoards(inventory));
   }
+
+  // Lista de la compra: piezas sin sitio agrupadas, con sus pies tablares.
+  const shopping =
+    result && result.unplaced.length > 0
+      ? [
+          ...result.unplaced
+            .reduce((map, p) => {
+              const key = `${p.name}|${p.species ?? ""}`;
+              const entry = map.get(key) ?? {
+                name: p.name,
+                species: p.species,
+                count: 0,
+                bf: 0,
+              };
+              entry.count += 1;
+              entry.bf += boardFeet(p.lengthIn, p.widthIn, p.thicknessIn) ?? 0;
+              map.set(key, entry);
+              return map;
+            }, new Map<string, { name: string; species: string | null; count: number; bf: number }>())
+            .values(),
+        ]
+      : [];
 
   return (
     <>
@@ -139,16 +171,19 @@ export default async function ProjectDetailPage({
                       <p className="truncate text-sm font-semibold">
                         {Math.floor(part.quantity)} × {part.name}
                       </p>
-                      <p className="text-xs tabular-nums text-muted-foreground">
-                        {formatInches(part.lengthIn)}″ ×{" "}
-                        {formatInches(part.widthIn)}″ ×{" "}
-                        {formatInches(part.thicknessIn)}″
-                        {part.species && (
-                          <span className="ml-2 font-medium text-primary">
-                            {part.species}
-                          </span>
-                        )}
-                      </p>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                        <p className="text-xs tabular-nums text-muted-foreground">
+                          {formatInches(part.lengthIn)}″ ×{" "}
+                          {formatInches(part.widthIn)}″ ×{" "}
+                          {formatInches(part.thicknessIn)}″
+                        </p>
+                        <PartSpeciesSelect
+                          projectId={project.id}
+                          partId={part.id}
+                          species={part.species}
+                          inventorySpecies={inventorySpecies}
+                        />
+                      </div>
                     </div>
                     <form action={removePart}>
                       <button
@@ -226,7 +261,35 @@ export default async function ProjectDetailPage({
               </p>
             )}
 
-            {result && result.plans.length === 0 && (
+            {/* Veredicto: ¿hay madera suficiente en el inventario? */}
+            {result && result.unplaced.length === 0 && (
+              <p className="rounded-xl border border-[#4a7a3a]/40 bg-[#4a7a3a]/10 px-4 py-2.5 text-sm font-medium text-[#3d6530]">
+                ✓ Tienes madera suficiente: todo el despiece sale de tu
+                inventario con {result.plans.length}{" "}
+                {result.plans.length === 1 ? "tabla" : "tablas"}.
+              </p>
+            )}
+            {shopping.length > 0 && (
+              <div className="rounded-xl border border-[#a83c2a]/40 bg-[#a83c2a]/10 px-4 py-3 text-sm text-[#7c2d20]">
+                <p className="mb-1.5 font-semibold">
+                  Te falta madera — lista de la compra:
+                </p>
+                <ul className="space-y-0.5">
+                  {shopping.map((s, i) => (
+                    <li key={i} className="tabular-nums">
+                      {s.count} × {s.name}
+                      {s.species ? ` · ${s.species}` : " · cualquier madera"}
+                      {s.bf > 0 && ` · ~${s.bf.toFixed(2)} BF`}
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-1.5 text-xs opacity-80">
+                  Compra con demasía: el BF indicado es neto de pieza, sin
+                  desperdicio de corte.
+                </p>
+              </div>
+            )}
+            {result && result.plans.length === 0 && result.unplaced.length === 0 && (
               <p className="panel-paper rounded-2xl p-4 text-sm text-muted-foreground">
                 Ninguna tabla del inventario puede con estas piezas (revisa
                 grosores y medidas).
@@ -280,12 +343,6 @@ export default async function ProjectDetailPage({
               );
             })}
 
-            {result && result.unplaced.length > 0 && (
-              <p className="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
-                Sin sitio en el inventario:{" "}
-                {result.unplaced.map((p) => p.name).join(", ")}.
-              </p>
-            )}
           </section>
         )}
 
