@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { asc, eq } from "drizzle-orm";
 import {
   ArrowLeft,
-  Axe,
   FileText,
   Hammer,
   Pencil,
@@ -15,7 +14,6 @@ import { projectParts, projects, woodItems } from "@/lib/db/schema";
 import { addPart, deletePart, deleteProject } from "@/app/projects/actions";
 import { Header } from "@/components/header";
 import { BoardPicker } from "@/components/board-picker";
-import { CutDiagram } from "@/components/cut-diagram";
 import { PartSpeciesSelect } from "@/components/part-species-select";
 import { StepImport } from "@/components/step-import";
 import { WorkshopAdvice } from "@/components/workshop-advice";
@@ -43,13 +41,10 @@ const STATUS_STAMP: Record<string, string> = {
 
 export default async function ProjectDetailPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ optimizar?: string }>;
 }) {
   const { id } = await params;
-  const { optimizar } = await searchParams;
   const db = getDb();
 
   const [project] = await db
@@ -93,11 +88,13 @@ export default async function ProjectDetailPage({
     ? inventory.filter((i) => project.boardIds.includes(i.id))
     : inventory;
 
-  // El optimizador solo corre cuando se pide (?optimizar=1).
+  // Viabilidad automática: ¿sale el despiece del inventario elegido? Es el
+  // mismo motor de siempre pero solo para el veredicto y la lista de la
+  // compra — los cortes reales los decide el usuario en la Mesa de trabajo.
   let result = null;
   let boards: BoardUnit[] = [];
   let glueNotes: GlueNote[] = [];
-  if (optimizar && woodParts.length > 0) {
+  if (woodParts.length > 0) {
     boards = expandBoards(usableInventory);
     // Piezas que no caben enteras → tiras/capas encolables.
     const prepared = planGlueUps(expandParts(woodParts), boards);
@@ -276,22 +273,12 @@ export default async function ProjectDetailPage({
               <h2 className="text-letterpress font-display text-2xl font-semibold tracking-tight">
                 Plan de corte
               </h2>
-              <div className="flex flex-wrap items-center gap-2">
-                <Link
-                  href={`/projects/${project.id}/mesa`}
-                  className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-[#5a4632] bg-gradient-to-b from-[#8a7152] to-[#6d573d] px-4 text-sm font-semibold text-[#f5e9d4] [text-shadow:0_1px_0_rgba(0,0,0,0.35)] shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_2px_4px_rgba(0,0,0,0.45)] transition-all hover:from-[#967d5e] hover:to-[#79614a] active:shadow-[inset_0_2px_5px_rgba(30,20,10,0.5)]"
-                >
-                  <Hammer className="h-4 w-4" /> Mesa de trabajo
-                </Link>
-                {!result && (
-                  <Link
-                    href={`/projects/${project.id}?optimizar=1`}
-                    className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-[#8a5a24] bg-gradient-to-b from-[#f0bd6b] to-[#cf8f33] px-4 text-sm font-semibold text-[#3b2712] [text-shadow:0_1px_0_rgba(255,255,255,0.4)] shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_2px_4px_rgba(0,0,0,0.45)] transition-all hover:from-[#f4c67c] hover:to-[#d6993f] active:shadow-[inset_0_2px_5px_rgba(70,45,15,0.45)]"
-                  >
-                    <Axe className="h-4 w-4" /> Optimizar cortes
-                  </Link>
-                )}
-              </div>
+              <Link
+                href={`/projects/${project.id}/mesa`}
+                className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-[#8a5a24] bg-gradient-to-b from-[#f0bd6b] to-[#cf8f33] px-4 text-sm font-semibold text-[#3b2712] [text-shadow:0_1px_0_rgba(255,255,255,0.4)] shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_2px_4px_rgba(0,0,0,0.45)] transition-all hover:from-[#f4c67c] hover:to-[#d6993f] active:shadow-[inset_0_2px_5px_rgba(70,45,15,0.45)]"
+              >
+                <Hammer className="h-4 w-4" /> Mesa de trabajo
+              </Link>
             </div>
 
             <BoardPicker
@@ -311,7 +298,7 @@ export default async function ProjectDetailPage({
               selected={project.boardIds}
             />
 
-            {result && nonWoodParts.length > 0 && (
+            {nonWoodParts.length > 0 && (
               <p className="rounded-xl border border-[#6b6255]/30 bg-[#6b6255]/10 px-4 py-2.5 text-xs text-[#5a5245]">
                 Fuera del plan de corte (otros materiales):{" "}
                 {nonWoodParts
@@ -323,11 +310,12 @@ export default async function ProjectDetailPage({
               </p>
             )}
 
-            {/* Veredicto: ¿hay madera suficiente en el inventario? */}
+            {/* Veredicto automático: ¿hay madera suficiente? Solo comprueba
+                viabilidad — los cortes se deciden en la Mesa de trabajo. */}
             {result && result.unplaced.length === 0 && (
               <p className="rounded-xl border border-[#4a7a3a]/40 bg-[#4a7a3a]/10 px-4 py-2.5 text-sm font-medium text-[#3d6530]">
-                ✓ Tienes madera suficiente: todo el despiece sale de tu
-                inventario con {result.plans.length}{" "}
+                ✓ Tienes madera suficiente: todo el despiece cabe en tu
+                inventario (bastaría con {result.plans.length}{" "}
                 {result.plans.length === 1 ? "tabla" : "tablas"}
                 {glueNotes.length > 0 &&
                   ` y ${glueNotes.reduce((s, n) => s + n.count, 0)} ${
@@ -335,7 +323,7 @@ export default async function ProjectDetailPage({
                       ? "encolado"
                       : "encolados"
                   }`}
-                .
+                ). Reparte los cortes a tu gusto en la Mesa de trabajo.
               </p>
             )}
 
@@ -343,8 +331,7 @@ export default async function ProjectDetailPage({
             {glueNotes.length > 0 && (
               <div className="rounded-xl border border-[#8a5a24]/40 bg-amber/15 px-4 py-3 text-sm text-[#5c3c14]">
                 <p className="mb-1.5 font-semibold">
-                  Encolados necesarios (las tiras/capas ya están en los
-                  planos):
+                  Encolados necesarios para que salga:
                 </p>
                 <ul className="space-y-0.5">
                   {glueNotes.map((n, i) => (
@@ -388,57 +375,6 @@ export default async function ProjectDetailPage({
                 </p>
               </div>
             )}
-            {result && result.plans.length === 0 && result.unplaced.length === 0 && (
-              <p className="panel-paper rounded-2xl p-4 text-sm text-muted-foreground">
-                Ninguna tabla del inventario puede con estas piezas (revisa
-                grosores y medidas).
-              </p>
-            )}
-
-            {result?.plans.map((plan) => (
-              <article
-                key={plan.board.key}
-                className="panel-paper space-y-3 rounded-2xl p-4 sm:p-5"
-              >
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <h3 className="text-letterpress text-lg font-semibold">
-                    {plan.board.name}
-                    {plan.board.unitIndex > 0 &&
-                      ` (unidad ${plan.board.unitIndex + 1})`}
-                  </h3>
-                  <p className="text-xs tabular-nums text-muted-foreground">
-                    {formatInches(plan.board.lengthIn)}″ ×{" "}
-                    {formatInches(plan.board.widthIn)}″ ×{" "}
-                    {formatInches(plan.board.thicknessIn)}″ · aprovechas el{" "}
-                    {Math.round(plan.utilization * 100)}%
-                  </p>
-                </div>
-                <CutDiagram plan={plan} />
-                <div className="space-y-1 text-xs text-muted-foreground">
-                  {plan.placements.some((p) => p.needsPlaning) && (
-                    <p>
-                      ⚠ Algunas piezas necesitan cepillado: la tabla es más
-                      gruesa que la pieza.
-                    </p>
-                  )}
-                  <p>Kerf de sierra de 1/8″ descontado · veta a lo largo.</p>
-                  {/* Sugerencia manual: la app no toca el inventario sola */}
-                  <p className="pt-1">
-                    Cuando lo cortes, acuérdate de actualizar el inventario a
-                    mano: descuenta «{plan.board.name}»
-                    {plan.leftovers.length > 0 &&
-                      ` y da de alta las sobras aprovechables (según el plano: ${plan.leftovers
-                        .map(
-                          (s) =>
-                            `${formatInches(s.lengthIn)}″ × ${formatInches(s.widthIn)}″`,
-                        )
-                        .join(", ")}) con sus medidas y fotos reales`}
-                    .
-                  </p>
-                </div>
-              </article>
-            ))}
-
             <WorkshopAdvice
               projectId={project.id}
               parts={parts.map((p) => ({ id: p.id, name: p.name }))}

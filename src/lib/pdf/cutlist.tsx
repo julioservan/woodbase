@@ -11,7 +11,7 @@ import {
   renderToBuffer,
 } from "@react-pdf/renderer";
 import type { Project, ProjectPart } from "@/lib/db/schema";
-import type { BoardPlan, GlueNote } from "@/lib/optimizer";
+import type { MesaSurface, WbInstance } from "@/lib/workbench";
 import { formatInches } from "@/lib/utils";
 
 // Fracción estilo taller con guion: 35-1/4
@@ -69,9 +69,11 @@ const styles = StyleSheet.create({
   planMeta: { fontSize: 8.5, color: "#6b5a45", marginBottom: 4 },
 });
 
-function PdfDiagram({ plan }: { plan: BoardPlan }) {
-  const L = plan.board.lengthIn;
-  const W = plan.board.widthIn;
+// Plano de una superficie de la mesa: tiras con su largo real, juntas de
+// cola discontinuas y las piezas tal cual las colocó el usuario.
+function PdfMesaDiagram({ surface }: { surface: MesaSurface }) {
+  const L = surface.lengthIn;
+  const W = surface.widthIn;
   // Ancho máximo 520 pt, alto máximo 240 pt.
   const scale = Math.min(520 / L, 240 / W);
   const width = L * scale;
@@ -80,75 +82,73 @@ function PdfDiagram({ plan }: { plan: BoardPlan }) {
 
   return (
     <Svg width={width} height={height} viewBox={`0 0 ${L} ${W}`}>
-      <Rect
-        x={0}
-        y={0}
-        width={L}
-        height={W}
-        fill="#e3c79b"
-        stroke="#5a3f28"
-        strokeWidth={fs * 0.12}
-      />
-      {plan.leftovers.map((s, i) => (
-        <G key={`s${i}`}>
+      {surface.strips.length === 0 ? (
+        <Rect
+          x={0}
+          y={0}
+          width={L}
+          height={W}
+          fill="#e3c79b"
+          stroke="#5a3f28"
+          strokeWidth={fs * 0.12}
+        />
+      ) : (
+        surface.strips.map((s, i) => (
           <Rect
-            x={s.x}
+            key={`st${i}`}
+            x={0}
             y={s.y}
             width={s.lengthIn}
             height={s.widthIn}
-            fill="#c9a869"
-            stroke="#7a5230"
-            strokeWidth={fs * 0.05}
-            strokeDasharray={`${fs * 0.35},${fs * 0.3}`}
+            fill="#e3c79b"
+            stroke="#5a3f28"
+            strokeWidth={fs * 0.08}
           />
-          {s.lengthIn > fs * 5 && s.widthIn > fs * 1.6 && (
-            <Text
-              x={s.x + s.lengthIn / 2}
-              y={s.y + s.widthIn / 2 + fs * 0.35}
-              textAnchor="middle"
-              style={{ fontSize: fs * 0.85, fill: "#6b4728" }}
-            >
-              {`sobra ${frac(s.lengthIn)} x ${frac(s.widthIn)}`}
-            </Text>
+        ))
+      )}
+      {surface.seams.map((s, i) => (
+        <Line
+          key={`seam${i}`}
+          x1={0}
+          y1={s}
+          x2={Math.min(
+            surface.strips[i]?.lengthIn ?? L,
+            surface.strips[i + 1]?.lengthIn ?? L,
           )}
-        </G>
+          y2={s}
+          stroke="#7a5230"
+          strokeWidth={fs * 0.07}
+          strokeDasharray={`${fs * 0.5},${fs * 0.35}`}
+        />
       ))}
-      {plan.placements.map((p) => (
-        <G key={p.part.key}>
+      {surface.placements.map((p, i) => (
+        <G key={`p${i}`}>
           <Rect
             x={p.x}
             y={p.y}
-            width={p.part.lengthIn}
-            height={p.part.widthIn}
+            width={p.w}
+            height={p.h}
             fill="#faf3e2"
             stroke="#38281a"
             strokeWidth={fs * 0.09}
           />
-          {p.part.lengthIn > fs * 2.6 && p.part.widthIn > fs * 1.1 && (
+          {p.w > fs * 2.6 && p.h > fs * 1.1 && (
             <Text
-              x={p.x + p.part.lengthIn / 2}
-              y={p.y + p.part.widthIn / 2 + fs * 0.35}
+              x={p.x + p.w / 2}
+              y={p.y + p.h / 2 + fs * 0.35}
               textAnchor="middle"
               style={{
-                fontSize: Math.min(fs, p.part.widthIn * 0.55),
+                fontSize: Math.min(fs, p.h * 0.55),
                 fill: "#2b1e13",
               }}
             >
-              {p.part.lengthIn > fs * 8
-                ? `${p.part.name} - ${frac(p.part.lengthIn)} x ${frac(p.part.widthIn)}`
-                : p.part.name}
+              {p.w > fs * 8
+                ? `${p.label} - ${frac(p.w)} x ${frac(p.h)}`
+                : p.label}
             </Text>
           )}
         </G>
       ))}
-      <Line
-        x1={0}
-        y1={0}
-        x2={0}
-        y2={0}
-        stroke="#5a3f28"
-        strokeWidth={0}
-      />
     </Svg>
   );
 }
@@ -156,13 +156,14 @@ function PdfDiagram({ plan }: { plan: BoardPlan }) {
 export async function buildCutListPdf(
   project: Project,
   parts: ProjectPart[],
-  plans: BoardPlan[],
-  unplacedNames: string[],
-  glueNotes: GlueNote[] = [],
+  surfaces: MesaSurface[],
+  unplaced: WbInstance[],
 ): Promise<Buffer> {
   const dateStr = new Intl.DateTimeFormat("es-ES", {
     dateStyle: "long",
   }).format(new Date());
+  const withPlacements = surfaces.filter((s) => s.placements.length > 0);
+  const unplacedLabels = [...new Set(unplaced.map((i) => i.label))];
 
   const doc = (
     <Document
@@ -209,55 +210,61 @@ export async function buildCutListPdf(
           tu maquina; kerf de sierra estimado 1/8".
         </Text>
 
-        {plans.length > 0 && (
+        {withPlacements.length > 0 ? (
           <View break>
             <Text style={styles.sectionTitle}>
-              Plan de corte (inventario Woodbase)
+              Plan de corte (Mesa de trabajo)
             </Text>
-            {plans.map((plan) => (
-              <View key={plan.board.key} style={styles.planCard} wrap={false}>
-                <Text style={styles.planTitle}>
-                  {plan.board.name}
-                  {plan.board.unitIndex > 0
-                    ? ` (unidad ${plan.board.unitIndex + 1})`
-                    : ""}
-                </Text>
-                <Text style={styles.planMeta}>
-                  {frac(plan.board.lengthIn)}" x {frac(plan.board.widthIn)}" x{" "}
-                  {frac(plan.board.thicknessIn)}"
-                  {plan.board.species ? ` - ${plan.board.species}` : ""} -
-                  aprovechamiento {Math.round(plan.utilization * 100)}% - veta a
-                  lo largo
-                </Text>
-                <PdfDiagram plan={plan} />
-              </View>
-            ))}
-            {glueNotes.length > 0 && (
-              <View style={{ marginTop: 6 }}>
-                <Text style={{ fontFamily: "Helvetica-Bold", fontSize: 10 }}>
-                  Encolados
-                </Text>
-                {glueNotes.map((n, i) => (
-                  <Text key={i} style={{ fontSize: 9, marginTop: 2 }}>
-                    {n.count > 1 ? `${n.count} x ` : ""}
-                    {n.partName}:{" "}
-                    {n.axis === "ancho"
-                      ? `encolar ${n.pieces} tiras de ${frac(n.pieceDim)}" de ancho hasta ${frac(n.targetDim)}"`
-                      : `laminar ${n.pieces} capas de ${frac(n.pieceDim)}" de grosor hasta ${frac(n.targetDim)}"`}
+            {withPlacements.map((surface) => {
+              const woodArea =
+                surface.strips.length > 0
+                  ? surface.strips.reduce(
+                      (s, st) => s + st.lengthIn * st.widthIn,
+                      0,
+                    )
+                  : surface.lengthIn * surface.widthIn;
+              const usedArea = surface.placements.reduce(
+                (s, p) => s + p.w * p.h,
+                0,
+              );
+              return (
+                <View key={surface.key} style={styles.planCard} wrap={false}>
+                  <Text style={styles.planTitle}>
+                    {surface.name}
+                    {surface.subtitle ? ` - ${surface.subtitle}` : ""}
                   </Text>
-                ))}
-                <Text style={styles.note}>
-                  Demasia incluida: 1/8" por tira (canteado) y 1/16" por capa
-                  (cepillado tras encolar).
-                </Text>
-              </View>
-            )}
-            {unplacedNames.length > 0 && (
+                  <Text style={styles.planMeta}>
+                    {surface.minLengthIn < surface.lengthIn - 1e-6
+                      ? `${frac(surface.minLengthIn)}"-${frac(surface.lengthIn)}"`
+                      : `${frac(surface.lengthIn)}"`}{" "}
+                    x {frac(surface.widthIn)}" x {frac(surface.thicknessIn)}"
+                    {surface.mixed
+                      ? " - mezcla de especies"
+                      : surface.species
+                        ? ` - ${surface.species}`
+                        : ""}{" "}
+                    - aprovechamiento {Math.round((usedArea / woodArea) * 100)}
+                    % - veta a lo largo
+                  </Text>
+                  <PdfMesaDiagram surface={surface} />
+                </View>
+              );
+            })}
+            {unplacedLabels.length > 0 && (
               <Text style={styles.note}>
-                Sin sitio en el inventario: {unplacedNames.join(", ")}.
+                Piezas sin colocar en la mesa: {unplacedLabels.join(", ")}.
               </Text>
             )}
+            <Text style={styles.note}>
+              Plan trazado a mano en la Mesa de trabajo de Woodbase. Kerf de
+              1/8" entre piezas; las lineas discontinuas son juntas de cola.
+            </Text>
           </View>
+        ) : (
+          <Text style={{ ...styles.note, marginTop: 14 }}>
+            Sin plan de corte: coloca las piezas en la Mesa de trabajo y
+            vuelve a generar el PDF.
+          </Text>
         )}
 
         <Text

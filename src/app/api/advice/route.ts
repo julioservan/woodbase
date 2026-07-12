@@ -10,6 +10,7 @@ import {
   planGlueUps,
   unplacedReason,
 } from "@/lib/optimizer";
+import { buildMesaSurfaces } from "@/lib/workbench";
 import { formatInches, isNonWoodMaterial } from "@/lib/utils";
 
 export const runtime = "nodejs";
@@ -109,8 +110,23 @@ export async function POST(request: Request) {
 
   const boards = expandBoards(inventory);
   const woodParts = parts.filter((p) => !isNonWoodMaterial(p.species));
+  // Viabilidad (¿alcanza la madera?) con el motor determinista — solo para
+  // informar; el plan real lo traza el usuario a mano en la Mesa de trabajo.
   const prepared = planGlueUps(expandParts(woodParts), boards);
   const result = optimize(prepared.instances, boards);
+  const { surfaces, unplaced: mesaUnplaced } = buildMesaSurfaces(
+    project.workbench,
+    expandBoards(inventoryAll),
+    woodParts.map((p) => ({
+      id: p.id,
+      name: p.name,
+      quantity: p.quantity,
+      lengthIn: p.lengthIn,
+      widthIn: p.widthIn,
+      thicknessIn: p.thicknessIn,
+      species: p.species,
+    })),
+  );
 
   const context = {
     proyecto: {
@@ -133,17 +149,20 @@ export async function POST(request: Request) {
       es_scrap: i.isScrap,
       notas: i.notes,
     })),
-    plan_calculado: {
-      tablas_usadas: result.plans.map((plan) => ({
-        tabla: plan.board.name,
-        especie: plan.board.species,
-        aprovechamiento: `${Math.round(plan.utilization * 100)}%`,
-        piezas: plan.placements.map((pl) => pl.part.name),
+    // El plan de corte manual que el usuario ha trazado en su mesa.
+    mesa_de_trabajo: {
+      superficies: surfaces.map((s) => ({
+        tabla: s.name + (s.subtitle ? ` (${s.subtitle})` : ""),
+        especie: s.mixed ? "mezcla de especies" : s.species,
+        medidas: dims(s.lengthIn, s.widthIn, s.thicknessIn),
+        piezas_colocadas: s.placements.map(
+          (p) => p.label + (p.rot ? " (girada, veta cruzada)" : ""),
+        ),
       })),
-      encolados: prepared.notes.map(
-        (n) =>
-          `${n.partName}: ${n.pieces} ${n.axis === "ancho" ? "tiras" : "capas"}`,
-      ),
+      piezas_sin_colocar: [...new Set(mesaUnplaced.map((i) => i.label))],
+    },
+    viabilidad_inventario: {
+      madera_suficiente: result.unplaced.length === 0,
       faltantes: result.unplaced.map((p) => ({
         pieza: p.name,
         motivo: unplacedReason(p, boards),
@@ -151,11 +170,11 @@ export async function POST(request: Request) {
     },
   };
 
-  const prompt = `Eres un carpintero experto asesorando en un taller personal. Este es el estado de un proyecto (despiece), el inventario de madera disponible y el plan de corte que ha calculado un algoritmo determinista (la geometría ya está resuelta: no la recalcules).
+  const prompt = `Eres un carpintero experto asesorando en un taller personal. Este es el estado de un proyecto: su despiece, el inventario de madera disponible, el plan de corte que el dueño ha trazado A MANO en su mesa de trabajo (respeta sus decisiones: sugiere, no impongas) y un chequeo automático de si la madera alcanza.
 
 ${JSON.stringify(context, null, 1)}
 
-Da tu consejo de carpintero en español: ¿el plan usa bien las tablas? Señala despilfarros (p. ej. cortar un slab live edge valioso o una madera exótica cara para piezas pequeñas u ocultas cuando hay madera más humilde), problemas de veta o estructura (patas, encolados), y qué comprarías si falta algo. Si alguna pieza sin especie (o mal asignada) tiene una tabla del inventario que le va mejor, sugiérelo en species_suggestions usando exactamente el nombre de la pieza. Sé concreto y breve; no inventes tablas que no estén en el inventario.`;
+Da tu consejo de carpintero en español: ¿el plan de la mesa usa bien las tablas? Señala despilfarros (p. ej. cortar un slab live edge valioso o una madera exótica cara para piezas pequeñas u ocultas cuando hay madera más humilde), problemas de veta o estructura (patas, piezas giradas, encolados), qué piezas sin colocar convendría ubicar y dónde, y qué comprarías si falta algo. Si alguna pieza sin especie (o mal asignada) tiene una tabla del inventario que le va mejor, sugiérelo en species_suggestions usando exactamente el nombre de la pieza. Sé concreto y breve; no inventes tablas que no estén en el inventario.`;
 
   const client = new Anthropic();
   try {

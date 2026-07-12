@@ -310,6 +310,117 @@ export function panelGeometry(
   };
 }
 
+// ---------- Lectura del estado de la mesa (para PDF y consejo IA) ----------
+
+export interface MesaPlacement {
+  label: string;
+  species: string | null;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  rot: boolean;
+}
+
+export interface MesaSurface {
+  key: string;
+  name: string;
+  subtitle: string;
+  species: string | null;
+  mixed: boolean;
+  lengthIn: number;
+  minLengthIn: number;
+  widthIn: number;
+  thicknessIn: number;
+  seams: number[];
+  strips: { name: string; y: number; widthIn: number; lengthIn: number }[];
+  placements: MesaPlacement[];
+}
+
+/**
+ * Reconstruye las superficies de la Mesa de trabajo (tablas sueltas y
+ * paneles, con sus piezas colocadas) a partir del layout guardado. Es la
+ * misma interpretación que hace el componente cliente.
+ */
+export function buildMesaSurfaces(
+  layoutRaw: unknown,
+  units: BoardUnit[],
+  parts: WbPart[],
+): { surfaces: MesaSurface[]; unplaced: WbInstance[] } {
+  const layout = normalizeLayout(layoutRaw);
+  const unitByKey = new Map(units.map((u) => [u.key, u]));
+  const instances = buildInstances(parts, layout.glue);
+  const instByKey = new Map(instances.map((i) => [i.key, i]));
+
+  const surfaces: MesaSurface[] = [];
+  for (const b of layout.boards) {
+    const unit = unitByKey.get(b.key);
+    if (!unit) continue;
+    const total = units.filter((u) => u.itemId === unit.itemId).length;
+    surfaces.push({
+      key: unit.key,
+      name: unit.name,
+      subtitle: total > 1 ? `unidad ${unit.unitIndex + 1}` : "",
+      species: unit.species,
+      mixed: false,
+      lengthIn: unit.lengthIn,
+      minLengthIn: unit.lengthIn,
+      widthIn: unit.widthIn,
+      thicknessIn: unit.thicknessIn,
+      seams: [],
+      strips: [],
+      placements: [],
+    });
+  }
+  for (const p of layout.panels) {
+    const panelUnits = p.unitKeys
+      .map((k) => unitByKey.get(k))
+      .filter((u): u is BoardUnit => !!u);
+    const geom = panelGeometry(p.key, panelUnits);
+    if (!geom) continue;
+    surfaces.push({
+      key: p.key,
+      name: `Panel encolado (${panelUnits.length} tablas)`,
+      subtitle: panelUnits.map((u) => u.name).join(" + "),
+      species: geom.species,
+      mixed: geom.mixed,
+      lengthIn: geom.lengthIn,
+      minLengthIn: geom.minLengthIn,
+      widthIn: geom.widthIn,
+      thicknessIn: geom.thicknessIn,
+      seams: geom.seams,
+      strips: geom.strips.map((s) => ({
+        name: s.unit.name,
+        y: s.y,
+        widthIn: s.widthIn,
+        lengthIn: s.lengthIn,
+      })),
+      placements: [],
+    });
+  }
+
+  const byKey = new Map(surfaces.map((s) => [s.key, s]));
+  const placedKeys = new Set<string>();
+  for (const pl of layout.placements) {
+    const inst = instByKey.get(pl.instanceKey);
+    const surface = byKey.get(pl.boardKey);
+    if (!inst || !surface) continue;
+    placedKeys.add(pl.instanceKey);
+    const { w, h } = footprint(inst, pl.rot);
+    surface.placements.push({
+      label: inst.label,
+      species: inst.species,
+      x: pl.x,
+      y: pl.y,
+      w,
+      h,
+      rot: pl.rot,
+    });
+  }
+  const unplaced = instances.filter((i) => !placedKeys.has(i.key));
+  return { surfaces, unplaced };
+}
+
 /** Color estable por especie (tono pastel) para pintar las piezas. */
 export function speciesColor(species: string | null, alpha = 1): string {
   if (!species) return `hsla(30, 8%, 52%, ${alpha})`;
