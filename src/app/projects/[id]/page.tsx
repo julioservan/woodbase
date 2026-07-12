@@ -148,36 +148,38 @@ export default async function ProjectDetailPage({
 
         {/* Despiece */}
         <section className="panel-paper mb-6 rounded-2xl p-4 sm:p-5">
-          <h2 className="eyebrow text-letterpress mb-3 text-muted-foreground">
-            Despiece
-          </h2>
+          <div className="mb-2 flex items-baseline justify-between gap-2">
+            <h2 className="eyebrow text-letterpress text-muted-foreground">
+              Despiece
+            </h2>
+            {parts.length > 0 && (
+              <span className="text-xs text-muted-foreground">
+                {parts.length} {parts.length === 1 ? "pieza" : "piezas"}
+              </span>
+            )}
+          </div>
           {parts.length > 0 && (
-            <ul className="mb-4 divide-y divide-[#c9b28c]/60">
+            <ul className="divide-y divide-[#c9b28c]/60">
               {parts.map((part) => {
                 const removePart = deletePart.bind(null, project.id, part.id);
                 return (
-                  <li
-                    key={part.id}
-                    className="flex items-center justify-between gap-3 py-2.5"
-                  >
-                    <div className="min-w-0">
+                  <li key={part.id} className="flex items-center gap-2 py-2">
+                    <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold">
                         {Math.floor(part.quantity)} × {part.name}
                       </p>
-                      <div className="mt-0.5 flex flex-wrap items-center gap-2">
-                        <p className="text-xs tabular-nums text-muted-foreground">
-                          {formatInches(part.lengthIn)}″ ×{" "}
-                          {formatInches(part.widthIn)}″ ×{" "}
-                          {formatInches(part.thicknessIn)}″
-                        </p>
-                        <PartSpeciesSelect
-                          projectId={project.id}
-                          partId={part.id}
-                          species={part.species}
-                          inventorySpecies={inventorySpecies}
-                        />
-                      </div>
+                      <p className="text-xs tabular-nums text-muted-foreground">
+                        {formatInches(part.lengthIn)}″ ×{" "}
+                        {formatInches(part.widthIn)}″ ×{" "}
+                        {formatInches(part.thicknessIn)}″
+                      </p>
                     </div>
+                    <PartSpeciesSelect
+                      projectId={project.id}
+                      partId={part.id}
+                      species={part.species}
+                      inventorySpecies={inventorySpecies}
+                    />
                     <form action={removePart}>
                       <button
                         type="submit"
@@ -193,41 +195,52 @@ export default async function ProjectDetailPage({
             </ul>
           )}
 
-          {/* Añadir pieza al despiece */}
-          <form
-            action={addPartToProject}
-            className="grid grid-cols-2 gap-2 sm:grid-cols-[1fr_4.5rem_5.5rem_5.5rem_5.5rem_auto]"
+          {/* Alta e importación, plegadas para no ocupar: se abren al tocar
+              (y quedan abiertas si el despiece está vacío). */}
+          <details
+            open={parts.length === 0}
+            className="group mt-2 border-t border-[#c9b28c]/60 pt-3"
           >
-            <Input
-              name="name"
-              required
-              placeholder="Pieza (pata, tapa...)"
-              aria-label="Nombre de la pieza"
-              className="col-span-2 sm:col-span-1"
-            />
-            <Input
-              name="quantity"
-              type="number"
-              min="1"
-              step="1"
-              defaultValue="1"
-              aria-label="Cantidad"
-            />
-            <Input name="lengthIn" required placeholder="Largo″" aria-label="Largo en pulgadas" />
-            <Input name="widthIn" required placeholder="Ancho″" aria-label="Ancho en pulgadas" />
-            <Input name="thicknessIn" required placeholder="Grosor″" aria-label="Grosor en pulgadas" />
-            <Button type="submit" size="sm" className="col-span-2 h-10 rounded-lg sm:col-span-1 sm:h-9">
-              <Plus className="h-4 w-4" /> Añadir
-            </Button>
-          </form>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Medidas en pulgadas; acepta fracciones (<code>3/4</code>,{" "}
-            <code>1 1/2</code>...).
-          </p>
-
-          <div className="mt-4 border-t border-[#c9b28c]/60 pt-4">
-            <StepImport projectId={project.id} />
-          </div>
+            <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-md border border-dashed border-[#a5865a]/70 px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-[#a5865a] hover:text-foreground [&::-webkit-details-marker]:hidden">
+              <Plus className="h-3.5 w-3.5" /> Añadir piezas
+              <span className="text-muted-foreground/60">
+                (a mano o desde STEP)
+              </span>
+            </summary>
+            <form
+              action={addPartToProject}
+              className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-[1fr_4.5rem_5.5rem_5.5rem_5.5rem_auto]"
+            >
+              <Input
+                name="name"
+                required
+                placeholder="Pieza (pata, tapa...)"
+                aria-label="Nombre de la pieza"
+                className="col-span-2 sm:col-span-1"
+              />
+              <Input
+                name="quantity"
+                type="number"
+                min="1"
+                step="1"
+                defaultValue="1"
+                aria-label="Cantidad"
+              />
+              <Input name="lengthIn" required placeholder="Largo″" aria-label="Largo en pulgadas" />
+              <Input name="widthIn" required placeholder="Ancho″" aria-label="Ancho en pulgadas" />
+              <Input name="thicknessIn" required placeholder="Grosor″" aria-label="Grosor en pulgadas" />
+              <Button type="submit" size="sm" className="col-span-2 h-10 rounded-lg sm:col-span-1 sm:h-9">
+                <Plus className="h-4 w-4" /> Añadir
+              </Button>
+            </form>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Medidas en pulgadas; acepta fracciones (<code>3/4</code>,{" "}
+              <code>1 1/2</code>...).
+            </p>
+            <div className="mt-4">
+              <StepImport projectId={project.id} />
+            </div>
+          </details>
         </section>
 
         {/* Optimizador */}

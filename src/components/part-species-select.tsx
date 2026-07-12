@@ -38,7 +38,7 @@ export function PartSpeciesSelect({
       }
       aria-label="Especie de la pieza"
       className={cn(
-        "h-7 appearance-none rounded-md border border-[#b09468] bg-gradient-to-b from-[#fffdf5] to-[#efe4c9] px-2 text-xs font-medium shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_2px_rgba(43,30,19,0.3)] transition-opacity disabled:opacity-50",
+        "h-7 max-w-[8.5rem] shrink-0 appearance-none overflow-hidden text-ellipsis whitespace-nowrap rounded-md border border-[#b09468] bg-gradient-to-b from-[#fffdf5] to-[#efe4c9] px-2 text-xs font-medium shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_2px_rgba(43,30,19,0.3)] transition-opacity disabled:opacity-50",
         !current && "text-muted-foreground",
       )}
     >
