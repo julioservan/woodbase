@@ -419,13 +419,23 @@ export function Workbench({
   ): { blocking: string[]; warnings: string[] } {
     const blocking: string[] = [];
     const warnings: string[] = [];
-    if (
-      r.x < -1e-6 ||
-      r.y < -1e-6 ||
-      r.x + r.w > table.lengthIn + 1e-6 ||
-      r.y + r.h > table.widthIn + 1e-6
-    ) {
-      blocking.push(table.isPanel ? "se sale del panel" : "se sale de la tabla");
+    const overL = r.x + r.w - table.lengthIn;
+    const overW = r.y + r.h - table.widthIn;
+    if (r.x < -1e-6 || r.y < -1e-6 || overL > 1e-6 || overW > 1e-6) {
+      const surface = table.isPanel ? "del panel" : "de la tabla";
+      const axes = [
+        overL > 1e-6 ? `${fmt(overL)}″ de largo` : null,
+        overW > 1e-6 ? `${fmt(overW)}″ de ancho` : null,
+      ].filter(Boolean);
+      const hint =
+        overW > 1e-6 && overL <= 1e-6
+          ? " — encola tiras de la pieza o un panel más ancho"
+          : "";
+      blocking.push(
+        axes.length > 0
+          ? `se sale ${surface} ${axes.join(" y ")}${hint}`
+          : `se sale ${surface}`,
+      );
     }
     for (const o of others) {
       if (o.placement.key !== r.placement.key && collide(r, o)) {
