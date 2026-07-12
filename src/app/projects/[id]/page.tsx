@@ -290,6 +290,7 @@ export default async function ProjectDetailPage({
                 quantity: i.quantity,
                 unit: i.unit,
                 isScrap: i.isScrap,
+                photoUrl: i.photoUrl,
               }))}
               selected={project.boardIds}
             />

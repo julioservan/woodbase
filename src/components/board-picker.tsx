@@ -15,6 +15,7 @@ interface BoardOption {
   quantity: number;
   unit: string;
   isScrap: boolean;
+  photoUrl: string | null;
 }
 
 // Maderas del inventario elegidas para el proyecto: el plan de corte solo
@@ -68,7 +69,13 @@ export function BoardPicker({
         )}
       </div>
       <ul className="grid gap-x-4 gap-y-1 sm:grid-cols-2">
-        {boards.map((b) => {
+        {[...boards]
+          .sort(
+            (a, b) =>
+              (a.species ?? "￿").localeCompare(b.species ?? "￿", "es") ||
+              a.name.localeCompare(b.name, "es"),
+          )
+          .map((b) => {
           const dims =
             b.lengthIn != null && b.widthIn != null && b.thicknessIn != null
               ? `${formatInches(b.lengthIn)}″ × ${formatInches(b.widthIn)}″ × ${formatInches(b.thicknessIn)}″`
@@ -86,6 +93,21 @@ export function BoardPicker({
                   disabled={!usable}
                   className="h-4 w-4 shrink-0 accent-primary"
                 />
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border/60 bg-background/60">
+                  {b.photoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={b.photoUrl}
+                      alt=""
+                      loading="lazy"
+                      className="max-h-full max-w-full object-contain"
+                    />
+                  ) : (
+                    <span className="text-[9px] uppercase text-muted-foreground/60">
+                      sin foto
+                    </span>
+                  )}
+                </span>
                 <span className="min-w-0">
                   <span className="font-semibold">{b.name}</span>
                   {b.isScrap && (
