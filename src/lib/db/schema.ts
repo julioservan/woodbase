@@ -71,6 +71,8 @@ export const projects = pgTable("projects", {
   boardIds: uuid("board_ids").array().notNull().default([]),
   // Estado de la Mesa de trabajo (colocación manual de piezas sobre tablas).
   workbench: jsonb("workbench"),
+  // Portada del proyecto: p. ej. un screenshot del 3D de Shapr3D.
+  photoUrl: text("photo_url"),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()

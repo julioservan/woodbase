@@ -20,16 +20,7 @@ import { WorkshopAdvice } from "@/components/workshop-advice";
 import { PROJECT_STATUS_LABELS } from "@/components/project-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  expandBoards,
-  expandParts,
-  optimize,
-  planGlueUps,
-  unplacedReason,
-  type BoardUnit,
-  type GlueNote,
-} from "@/lib/optimizer";
-import { boardFeet, formatInches, isNonWoodMaterial } from "@/lib/utils";
+import { formatInches, isNonWoodMaterial } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -74,56 +65,13 @@ export default async function ProjectDetailPage({
 
   // Las piezas de otros materiales (metal, herrajes...) no se cortan de
   // tablas: se listan aparte y quedan fuera del plan.
-  const woodParts = parts.filter((p) => !isNonWoodMaterial(p.species));
   const nonWoodParts = parts.filter((p) => isNonWoodMaterial(p.species));
 
-  // Inventario completo (para el selector de maderas) y el subconjunto
-  // elegido para este proyecto (vacío = todas).
+  // Inventario completo, para el selector de maderas del proyecto.
   const inventory = await db
     .select()
     .from(woodItems)
     .orderBy(asc(woodItems.createdAt), asc(woodItems.id));
-  const boardFilterActive = project.boardIds.length > 0;
-  const usableInventory = boardFilterActive
-    ? inventory.filter((i) => project.boardIds.includes(i.id))
-    : inventory;
-
-  // Viabilidad automática: ¿sale el despiece del inventario elegido? Es el
-  // mismo motor de siempre pero solo para el veredicto y la lista de la
-  // compra — los cortes reales los decide el usuario en la Mesa de trabajo.
-  let result = null;
-  let boards: BoardUnit[] = [];
-  let glueNotes: GlueNote[] = [];
-  if (woodParts.length > 0) {
-    boards = expandBoards(usableInventory);
-    // Piezas que no caben enteras → tiras/capas encolables.
-    const prepared = planGlueUps(expandParts(woodParts), boards);
-    glueNotes = prepared.notes;
-    result = optimize(prepared.instances, boards);
-  }
-
-  // Lista de la compra: piezas sin sitio agrupadas, con el motivo real.
-  const shopping =
-    result && result.unplaced.length > 0
-      ? [
-          ...result.unplaced
-            .reduce((map, p) => {
-              const key = `${p.name}|${p.species ?? ""}`;
-              const entry = map.get(key) ?? {
-                name: p.name,
-                species: p.species,
-                count: 0,
-                bf: 0,
-                reason: unplacedReason(p, boards),
-              };
-              entry.count += 1;
-              entry.bf += boardFeet(p.lengthIn, p.widthIn, p.thicknessIn) ?? 0;
-              map.set(key, entry);
-              return map;
-            }, new Map<string, { name: string; species: string | null; count: number; bf: number; reason: string }>())
-            .values(),
-        ]
-      : [];
 
   return (
     <>
@@ -181,6 +129,18 @@ export default async function ProjectDetailPage({
             </form>
           </div>
         </div>
+
+        {/* Portada: screenshot del 3D del proyecto */}
+        {project.photoUrl && (
+          <section className="panel-paper mb-6 overflow-hidden rounded-2xl p-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={project.photoUrl}
+              alt={`Imagen de ${project.name}`}
+              className="max-h-80 w-full rounded-xl object-contain"
+            />
+          </section>
+        )}
 
         {/* Despiece */}
         <section className="panel-paper mb-6 rounded-2xl p-4 sm:p-5">
@@ -310,71 +270,6 @@ export default async function ProjectDetailPage({
               </p>
             )}
 
-            {/* Veredicto automático: ¿hay madera suficiente? Solo comprueba
-                viabilidad — los cortes se deciden en la Mesa de trabajo. */}
-            {result && result.unplaced.length === 0 && (
-              <p className="rounded-xl border border-[#4a7a3a]/40 bg-[#4a7a3a]/10 px-4 py-2.5 text-sm font-medium text-[#3d6530]">
-                ✓ Tienes madera suficiente: todo el despiece cabe en tu
-                inventario (bastaría con {result.plans.length}{" "}
-                {result.plans.length === 1 ? "tabla" : "tablas"}
-                {glueNotes.length > 0 &&
-                  ` y ${glueNotes.reduce((s, n) => s + n.count, 0)} ${
-                    glueNotes.reduce((s, n) => s + n.count, 0) === 1
-                      ? "encolado"
-                      : "encolados"
-                  }`}
-                ). Reparte los cortes a tu gusto en la Mesa de trabajo.
-              </p>
-            )}
-
-            {/* Encolados: cómo juntar tiras/capas para las piezas grandes */}
-            {glueNotes.length > 0 && (
-              <div className="rounded-xl border border-[#8a5a24]/40 bg-amber/15 px-4 py-3 text-sm text-[#5c3c14]">
-                <p className="mb-1.5 font-semibold">
-                  Encolados necesarios para que salga:
-                </p>
-                <ul className="space-y-0.5">
-                  {glueNotes.map((n, i) => (
-                    <li key={i} className="tabular-nums">
-                      {n.count > 1 ? `${n.count} × ` : ""}
-                      {n.partName}:{" "}
-                      {n.axis === "ancho"
-                        ? `encolar ${n.pieces} tiras de ${formatInches(n.pieceDim)}″ de ancho para llegar a ${formatInches(n.targetDim)}″`
-                        : `laminar ${n.pieces} capas de ${formatInches(n.pieceDim)}″ de grosor para llegar a ${formatInches(n.targetDim)}″`}
-                    </li>
-                  ))}
-                </ul>
-                <p className="mt-1.5 text-xs opacity-80">
-                  Demasía incluida: 1/8″ por tira para cantear y 1/16″ por capa
-                  para cepillar tras el encolado.
-                </p>
-              </div>
-            )}
-            {shopping.length > 0 && (
-              <div className="rounded-xl border border-[#a83c2a]/40 bg-[#a83c2a]/10 px-4 py-3 text-sm text-[#7c2d20]">
-                <p className="mb-1.5 font-semibold">
-                  Te falta madera
-                  {boardFilterActive && " (solo con las maderas elegidas)"} —
-                  lista de la compra:
-                </p>
-                <ul className="space-y-1">
-                  {shopping.map((s, i) => (
-                    <li key={i} className="tabular-nums">
-                      {s.count} × {s.name}
-                      {s.species ? ` · ${s.species}` : " · cualquier madera"}
-                      {s.bf > 0 && ` · ~${s.bf.toFixed(2)} BF`}
-                      <span className="block text-xs font-normal opacity-80">
-                        → {s.reason}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-                <p className="mt-1.5 text-xs opacity-80">
-                  Compra con demasía: el BF indicado es neto de pieza, sin
-                  desperdicio de corte.
-                </p>
-              </div>
-            )}
             <WorkshopAdvice
               projectId={project.id}
               parts={parts.map((p) => ({ id: p.id, name: p.name }))}

@@ -70,6 +70,17 @@ export default async function ProjectsPage() {
                 <h2 className="text-letterpress pr-20 font-display text-xl font-semibold leading-tight">
                   {project.name}
                 </h2>
+                {project.photoUrl && (
+                  <div className="overflow-hidden rounded-md border border-[#a5865a]/40 bg-white/50 shadow-sm">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={project.photoUrl}
+                      alt={`Imagen de ${project.name}`}
+                      loading="lazy"
+                      className="h-36 w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                    />
+                  </div>
+                )}
                 {project.description && (
                   <p className="line-clamp-2 text-sm text-muted-foreground">
                     {project.description}

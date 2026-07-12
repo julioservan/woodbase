@@ -27,6 +27,8 @@ function parseProjectForm(formData: FormData) {
     status: STATUSES.includes(statusRaw as Status)
       ? (statusRaw as Status)
       : ("idea" as Status),
+    // Portada (screenshot del 3D); se sube antes vía /api/upload.
+    photoUrl: str(formData, "photoUrl"),
     notes: str(formData, "notes"),
   };
 }
