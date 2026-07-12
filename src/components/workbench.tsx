@@ -67,13 +67,42 @@ interface TableGeom {
   subtitle: string;
   species: string | null;
   mixed: boolean;
-  lengthIn: number;
+  lengthIn: number; // lienzo: el largo de la tira más larga
+  minLengthIn: number; // el de la más corta
   widthIn: number;
   thicknessIn: number;
   seams: number[];
-  strips: { name: string; species: string | null; y: number; widthIn: number }[];
+  strips: {
+    name: string;
+    species: string | null;
+    y: number;
+    widthIn: number;
+    lengthIn: number;
+  }[];
   photoUrl: string | null;
   isPanel: boolean;
+}
+
+/** Borde derecho real de madera bajo la franja y0..y0+h (tiras de panel). */
+function woodRightEdge(table: TableGeom, y0: number, h: number): number {
+  if (table.strips.length === 0) return table.lengthIn;
+  const overlapped = table.strips.filter(
+    (s) => y0 < s.y + s.widthIn - 1e-6 && y0 + h > s.y + 1e-6,
+  );
+  if (overlapped.length === 0) return table.lengthIn;
+  return Math.min(...overlapped.map((s) => s.lengthIn));
+}
+
+/** Zonas sin madera del panel (tiras más cortas que el lienzo). */
+function panelVoids(table: TableGeom): Rect[] {
+  return table.strips
+    .filter((s) => s.lengthIn < table.lengthIn - 1e-6)
+    .map((s) => ({
+      x: s.lengthIn,
+      y: s.y,
+      w: table.lengthIn - s.lengthIn,
+      h: s.widthIn,
+    }));
 }
 
 let keyCounter = 0;
@@ -136,6 +165,7 @@ export function Workbench({
         species: unit.species,
         mixed: false,
         lengthIn: unit.lengthIn,
+        minLengthIn: unit.lengthIn,
         widthIn: unit.widthIn,
         thicknessIn: unit.thicknessIn,
         seams: [],
@@ -157,6 +187,7 @@ export function Workbench({
         species: geom.species,
         mixed: geom.mixed,
         lengthIn: geom.lengthIn,
+        minLengthIn: geom.minLengthIn,
         widthIn: geom.widthIn,
         thicknessIn: geom.thicknessIn,
         seams: geom.seams,
@@ -165,6 +196,7 @@ export function Workbench({
           species: s.unit.species,
           y: s.y,
           widthIn: s.widthIn,
+          lengthIn: s.lengthIn,
         })),
         photoUrl: null,
         isPanel: true,
@@ -347,6 +379,7 @@ export function Workbench({
       table.lengthIn,
       table.widthIn,
       others,
+      table.strips.map((s) => s.lengthIn),
     );
     const key = newKey();
     mutate((prev) => ({
@@ -419,10 +452,19 @@ export function Workbench({
   ): { blocking: string[]; warnings: string[] } {
     const blocking: string[] = [];
     const warnings: string[] = [];
-    const overL = r.x + r.w - table.lengthIn;
+    // El borde derecho de madera depende de las tiras que pise (en paneles
+    // con tablas de largos distintos la corta acaba antes).
+    const rightEdge = woodRightEdge(table, r.y, r.h);
+    const overL = r.x + r.w - rightEdge;
     const overW = r.y + r.h - table.widthIn;
     if (r.x < -1e-6 || r.y < -1e-6 || overL > 1e-6 || overW > 1e-6) {
-      const surface = table.isPanel ? "del panel" : "de la tabla";
+      const shortStrip =
+        table.isPanel && overL > 1e-6 && r.x + r.w <= table.lengthIn + 1e-6;
+      const surface = shortStrip
+        ? "de la tira más corta del panel"
+        : table.isPanel
+          ? "del panel"
+          : "de la tabla";
       const axes = [
         overL > 1e-6 ? `${fmt(overL)}″ de largo` : null,
         overW > 1e-6 ? `${fmt(overW)}″ de ancho` : null,
@@ -527,6 +569,7 @@ export function Workbench({
       table.lengthIn,
       table.widthIn,
       others,
+      table.strips.map((s) => s.lengthIn),
     );
     movePlacement(pl.key, snapped.x, snapped.y);
   }
@@ -731,11 +774,18 @@ export function Workbench({
                 <span>
                   Panel resultante:{" "}
                   <strong className="tabular-nums">
-                    {fmt(gluePreview!.lengthIn)}″ × {fmt(gluePreview!.widthIn)}″
-                    × {fmt(gluePreview!.thicknessIn)}″
+                    {gluePreview!.minLengthIn < gluePreview!.lengthIn - 1e-6
+                      ? `${fmt(gluePreview!.minLengthIn)}″–${fmt(gluePreview!.lengthIn)}″`
+                      : `${fmt(gluePreview!.lengthIn)}″`}{" "}
+                    × {fmt(gluePreview!.widthIn)}″ ×{" "}
+                    {fmt(gluePreview!.thicknessIn)}″
                   </strong>{" "}
                   ({gluePick.length} tablas, {gluePick.length - 1} junta
-                  {gluePick.length > 2 ? "s" : ""})
+                  {gluePick.length > 2 ? "s" : ""}
+                  {gluePreview!.minLengthIn < gluePreview!.lengthIn - 1e-6
+                    ? "; largos distintos: la tira larga sobresale"
+                    : ""}
+                  )
                 </span>
                 {gluePreview!.mixed && (
                   <span className="text-[#8a6a1f]">⚠ mezcla especies</span>
@@ -856,8 +906,16 @@ export function Workbench({
         tables.map((table) => {
           const rects = rectsByTable.get(table.key) ?? [];
           const usedArea = rects.reduce((s, r) => s + r.w * r.h, 0);
-          const utilization = usedArea / (table.lengthIn * table.widthIn);
-          const hole = largestFreeRect(table.lengthIn, table.widthIn, rects);
+          const voids = panelVoids(table);
+          const woodArea =
+            table.strips.length > 0
+              ? table.strips.reduce((s, st) => s + st.lengthIn * st.widthIn, 0)
+              : table.lengthIn * table.widthIn;
+          const utilization = usedArea / woodArea;
+          const hole = largestFreeRect(table.lengthIn, table.widthIn, [
+            ...rects,
+            ...voids,
+          ]);
           const W = table.lengthIn * pxPerIn;
           const H = table.widthIn * pxPerIn;
           const selHere =
@@ -892,8 +950,10 @@ export function Workbench({
                       )}
                     </p>
                     <p className="truncate text-xs tabular-nums text-muted-foreground">
-                      {fmt(table.lengthIn)}″ × {fmt(table.widthIn)}″ ×{" "}
-                      {fmt(table.thicknessIn)}″
+                      {table.minLengthIn < table.lengthIn - 1e-6
+                        ? `${fmt(table.minLengthIn)}″–${fmt(table.lengthIn)}″`
+                        : `${fmt(table.lengthIn)}″`}{" "}
+                      × {fmt(table.widthIn)}″ × {fmt(table.thicknessIn)}″
                       {table.mixed
                         ? " · mezcla de especies"
                         : table.species
@@ -936,33 +996,52 @@ export function Workbench({
                       <stop offset="1" stopColor="#c39a63" />
                     </linearGradient>
                   </defs>
-                  <rect
-                    x={0}
-                    y={0}
-                    width={W}
-                    height={H}
-                    fill={`url(#wood-${table.key})`}
-                    stroke="#8a6a3f"
-                  />
-                  {/* Tintes por tira (paneles con especies distintas) */}
-                  {table.mixed &&
+                  {table.strips.length === 0 ? (
+                    <rect
+                      x={0}
+                      y={0}
+                      width={W}
+                      height={H}
+                      fill={`url(#wood-${table.key})`}
+                      stroke="#8a6a3f"
+                    />
+                  ) : (
+                    // Panel: cada tira con su largo real, a ras por x = 0.
                     table.strips.map((s, i) => (
-                      <rect
-                        key={`strip${i}`}
-                        x={0}
-                        y={s.y * pxPerIn}
-                        width={W}
-                        height={s.widthIn * pxPerIn}
-                        fill={speciesColor(s.species, 0.14)}
-                      />
-                    ))}
-                  {/* Juntas de cola */}
+                      <g key={`strip${i}`}>
+                        <rect
+                          x={0}
+                          y={s.y * pxPerIn}
+                          width={s.lengthIn * pxPerIn}
+                          height={s.widthIn * pxPerIn}
+                          fill={`url(#wood-${table.key})`}
+                          stroke="#8a6a3f"
+                          strokeWidth={0.75}
+                        />
+                        {table.mixed && (
+                          <rect
+                            x={0}
+                            y={s.y * pxPerIn}
+                            width={s.lengthIn * pxPerIn}
+                            height={s.widthIn * pxPerIn}
+                            fill={speciesColor(s.species, 0.14)}
+                          />
+                        )}
+                      </g>
+                    ))
+                  )}
+                  {/* Juntas de cola: hasta donde llegan las dos tiras */}
                   {table.seams.map((s, i) => (
                     <line
                       key={`seam${i}`}
                       x1={0}
                       y1={s * pxPerIn}
-                      x2={W}
+                      x2={
+                        Math.min(
+                          table.strips[i]?.lengthIn ?? table.lengthIn,
+                          table.strips[i + 1]?.lengthIn ?? table.lengthIn,
+                        ) * pxPerIn
+                      }
                       y2={s * pxPerIn}
                       stroke="#7a5a2f"
                       strokeWidth={1.5}
@@ -1139,7 +1218,9 @@ export function Workbench({
                         />
                       );
                       const left = r.x;
-                      const right = table.lengthIn - (r.x + r.w);
+                      const rightEdge = woodRightEdge(table, r.y, r.h);
+                      const rightEdgePx = rightEdge * pxPerIn;
+                      const right = rightEdge - (r.x + r.w);
                       const top = r.y;
                       const bottom = table.widthIn - (r.y + r.h);
                       return (
@@ -1152,9 +1233,12 @@ export function Workbench({
                           )}
                           {right > 0.05 && (
                             <>
-                              {dimLine((r.x + r.w) * pxPerIn, cy, W, cy)}
+                              {dimLine((r.x + r.w) * pxPerIn, cy, rightEdgePx, cy)}
                               {label(
-                                Math.min(W - 24, (r.x + r.w) * pxPerIn + (right * pxPerIn) / 2),
+                                Math.min(
+                                  rightEdgePx - 24,
+                                  (r.x + r.w) * pxPerIn + (right * pxPerIn) / 2,
+                                ),
                                 cy - 9,
                                 `${fmt(right)}″`,
                               )}
@@ -1236,11 +1320,12 @@ export function Workbench({
 
       <p className="text-xs text-muted-foreground">
         El kerf de la sierra (1/8″) se respeta entre piezas: los imanes dejan
-        el hueco solos. Un panel encolado se retesta al largo de la tabla más
-        corta y pierde 1/8″ de canteado por junta. Girar una pieza cruza su
-        veta con la de la tabla — la mesa avisa pero no lo impide. Y como
-        siempre: esto es un plano; el inventario lo actualizas tú a mano
-        cuando cortes.
+        el hueco solos. En un panel encolado las tablas se alinean a ras por
+        un extremo y cada tira conserva su largo real (la larga sobresale);
+        cada junta pierde 1/8″ de canteado. Girar una pieza cruza su veta con
+        la de la tabla — la mesa avisa pero no lo impide. Y como siempre:
+        esto es un plano; el inventario lo actualizas tú a mano cuando
+        cortes.
       </p>
     </div>
   );

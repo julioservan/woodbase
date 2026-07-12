@@ -184,8 +184,9 @@ export function snapPosition(
   boardL: number,
   boardW: number,
   others: Rect[],
+  rightEdges: number[] = [], // bordes derechos extra (tiras de panel más cortas)
 ): { x: number; y: number } {
-  const candX: number[] = [0, boardL - w];
+  const candX: number[] = [0, boardL - w, ...rightEdges.map((e) => e - w)];
   const candY: number[] = [0, boardW - h];
   for (const o of others) {
     candX.push(o.x + o.w + KERF_IN, o.x - w - KERF_IN, o.x);
@@ -258,15 +259,20 @@ export function largestFreeRect(
   return { w: best.w * res, h: best.h * res };
 }
 
-/** Geometría resultante de encolar tablas al canto, en orden. */
+/**
+ * Geometría resultante de encolar tablas al canto, en orden. Las tablas se
+ * alinean a ras por un extremo (x = 0): si tienen largos distintos, cada tira
+ * conserva su largo real y la parte donde no hay madera queda como vacío.
+ */
 export interface PanelGeometry {
   key: string;
-  lengthIn: number; // el largo de la tabla más corta (el panel se retesta)
+  lengthIn: number; // el largo de la tira más larga (lienzo del panel)
+  minLengthIn: number; // el de la más corta (ancho completo garantizado)
   widthIn: number; // suma de anchos menos la pérdida de canteado por junta
   thicknessIn: number; // el grosor de la más fina (se cepilla a ras)
   species: string | null; // especie común; null si es mezcla
   mixed: boolean;
-  strips: { unit: BoardUnit; y: number; widthIn: number }[];
+  strips: { unit: BoardUnit; y: number; widthIn: number; lengthIn: number }[];
   seams: number[]; // posiciones y de las juntas de cola
 }
 
@@ -287,13 +293,14 @@ export function panelGeometry(
     // Cada junta come PANEL_JOINT_LOSS_IN, mitad de cada lado.
     const joints = (i > 0 ? 1 : 0) + (i < n - 1 ? 1 : 0);
     const w = unit.widthIn - (joints * PANEL_JOINT_LOSS_IN) / 2;
-    strips.push({ unit, y, widthIn: w });
+    strips.push({ unit, y, widthIn: w, lengthIn: unit.lengthIn });
     y += w;
     if (i < n - 1) seams.push(y);
   });
   return {
     key,
-    lengthIn: Math.min(...units.map((u) => u.lengthIn)),
+    lengthIn: Math.max(...units.map((u) => u.lengthIn)),
+    minLengthIn: Math.min(...units.map((u) => u.lengthIn)),
     widthIn: y,
     thicknessIn: Math.min(...units.map((u) => u.thicknessIn)),
     species: mixed ? null : units[0].species,
