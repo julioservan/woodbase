@@ -1,7 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { asc, eq } from "drizzle-orm";
-import { ArrowLeft, Axe, FileText, Pencil, Plus, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Axe,
+  FileText,
+  Hammer,
+  Pencil,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { getDb } from "@/lib/db";
 import { projectParts, projects, woodItems } from "@/lib/db/schema";
 import { addPart, deletePart, deleteProject } from "@/app/projects/actions";
@@ -268,14 +276,22 @@ export default async function ProjectDetailPage({
               <h2 className="text-letterpress font-display text-2xl font-semibold tracking-tight">
                 Plan de corte
               </h2>
-              {!result && (
+              <div className="flex flex-wrap items-center gap-2">
                 <Link
-                  href={`/projects/${project.id}?optimizar=1`}
-                  className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-[#8a5a24] bg-gradient-to-b from-[#f0bd6b] to-[#cf8f33] px-4 text-sm font-semibold text-[#3b2712] [text-shadow:0_1px_0_rgba(255,255,255,0.4)] shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_2px_4px_rgba(0,0,0,0.45)] transition-all hover:from-[#f4c67c] hover:to-[#d6993f] active:shadow-[inset_0_2px_5px_rgba(70,45,15,0.45)]"
+                  href={`/projects/${project.id}/mesa`}
+                  className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-[#5a4632] bg-gradient-to-b from-[#8a7152] to-[#6d573d] px-4 text-sm font-semibold text-[#f5e9d4] [text-shadow:0_1px_0_rgba(0,0,0,0.35)] shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_2px_4px_rgba(0,0,0,0.45)] transition-all hover:from-[#967d5e] hover:to-[#79614a] active:shadow-[inset_0_2px_5px_rgba(30,20,10,0.5)]"
                 >
-                  <Axe className="h-4 w-4" /> Optimizar cortes
+                  <Hammer className="h-4 w-4" /> Mesa de trabajo
                 </Link>
-              )}
+                {!result && (
+                  <Link
+                    href={`/projects/${project.id}?optimizar=1`}
+                    className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-[#8a5a24] bg-gradient-to-b from-[#f0bd6b] to-[#cf8f33] px-4 text-sm font-semibold text-[#3b2712] [text-shadow:0_1px_0_rgba(255,255,255,0.4)] shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_2px_4px_rgba(0,0,0,0.45)] transition-all hover:from-[#f4c67c] hover:to-[#d6993f] active:shadow-[inset_0_2px_5px_rgba(70,45,15,0.45)]"
+                  >
+                    <Axe className="h-4 w-4" /> Optimizar cortes
+                  </Link>
+                )}
+              </div>
             </div>
 
             <BoardPicker

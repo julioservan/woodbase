@@ -131,6 +131,23 @@ export async function updatePartSpecies(
   revalidatePath(`/projects/${projectId}`);
 }
 
+/**
+ * Guarda el estado de la Mesa de trabajo (colocación manual de piezas).
+ * No revalida rutas: el cliente es la fuente de verdad mientras se trabaja.
+ */
+export async function updateWorkbench(projectId: string, layout: unknown) {
+  if (typeof layout !== "object" || layout === null) {
+    throw new Error("Layout inválido");
+  }
+  if (JSON.stringify(layout).length > 200_000) {
+    throw new Error("La mesa es demasiado grande para guardarse");
+  }
+  await getDb()
+    .update(projects)
+    .set({ workbench: layout, updatedAt: new Date() })
+    .where(eq(projects.id, projectId));
+}
+
 export async function deletePart(projectId: string, partId: string) {
   await getDb().delete(projectParts).where(eq(projectParts.id, partId));
   revalidatePath(`/projects/${projectId}`);

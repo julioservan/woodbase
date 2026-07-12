@@ -1,5 +1,6 @@
 import {
   boolean,
+  jsonb,
   pgEnum,
   pgTable,
   real,
@@ -68,6 +69,8 @@ export const projects = pgTable("projects", {
   status: projectStatusEnum("status").notNull().default("idea"),
   // Tablas del inventario elegidas para este proyecto; vacío = todas.
   boardIds: uuid("board_ids").array().notNull().default([]),
+  // Estado de la Mesa de trabajo (colocación manual de piezas sobre tablas).
+  workbench: jsonb("workbench"),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
