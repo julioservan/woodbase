@@ -1,10 +1,11 @@
 "use client";
 
 // Mesa de trabajo: lienzo manual de planificación de cortes. Las tablas del
-// inventario se dibujan a escala real compartida; el usuario añade tablas,
-// coloca piezas del despiece tocando/arrastrando, las gira, las encola en
-// tiras/capas y ve en vivo medidas de corte, huecos libres y avisos (veta,
-// especie, grosor, solapes). Nada de esto toca el inventario: es un plano.
+// inventario se dibujan a escala real compartida; el usuario añade tablas
+// (sueltas o encoladas en panel), coloca piezas del despiece tocando o
+// arrastrando, las gira, las encola en tiras/capas y ve en vivo medidas de
+// corte, huecos libres y avisos (veta, especie, grosor, solapes, juntas).
+// Nada de esto toca el inventario: es un plano.
 
 import {
   useCallback,
@@ -16,6 +17,7 @@ import {
 } from "react";
 import {
   Check,
+  Link2,
   Loader2,
   Minus,
   Plus,
@@ -32,6 +34,7 @@ import {
   footprint,
   largestFreeRect,
   normalizeLayout,
+  panelGeometry,
   snapPosition,
   speciesColor,
   type Rect,
@@ -57,8 +60,25 @@ interface PlacedRect extends Rect {
   instance: WbInstance;
 }
 
+/** Superficie sobre la mesa: una tabla suelta o un panel encolado. */
+interface TableGeom {
+  key: string;
+  name: string;
+  subtitle: string;
+  species: string | null;
+  mixed: boolean;
+  lengthIn: number;
+  widthIn: number;
+  thicknessIn: number;
+  seams: number[];
+  strips: { name: string; species: string | null; y: number; widthIn: number }[];
+  photoUrl: string | null;
+  isPanel: boolean;
+}
+
 let keyCounter = 0;
-const newKey = () => `pl-${++keyCounter}-${Math.random().toString(36).slice(2, 8)}`;
+const newKey = (prefix = "pl") =>
+  `${prefix}-${++keyCounter}-${Math.random().toString(36).slice(2, 8)}`;
 
 export function Workbench({
   projectId,
@@ -73,6 +93,8 @@ export function Workbench({
   const [pxPerIn, setPxPerIn] = useState(8);
   const [selTray, setSelTray] = useState<string | null>(null);
   const [selPlaced, setSelPlaced] = useState<string | null>(null);
+  /** Modo encolado de tablas: unidades elegidas para el panel en curso. */
+  const [gluePick, setGluePick] = useState<string[] | null>(null);
   const [isPending, startTransition] = useTransition();
   const [dirty, setDirty] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -100,15 +122,68 @@ export function Workbench({
     [instances],
   );
 
-  // Solo cuentan las colocaciones válidas (tabla en mesa e instancia vigente).
+  // Superficies sobre la mesa: tablas sueltas + paneles encolados.
+  const tables = useMemo<TableGeom[]>(() => {
+    const out: TableGeom[] = [];
+    for (const b of layout.boards) {
+      const unit = unitByKey.get(b.key);
+      if (!unit) continue;
+      const total = boardUnits.filter((u) => u.itemId === unit.itemId).length;
+      out.push({
+        key: unit.key,
+        name: unit.name,
+        subtitle: total > 1 ? `unidad ${unit.unitIndex + 1}` : "",
+        species: unit.species,
+        mixed: false,
+        lengthIn: unit.lengthIn,
+        widthIn: unit.widthIn,
+        thicknessIn: unit.thicknessIn,
+        seams: [],
+        strips: [],
+        photoUrl: boardPhotos[unit.itemId] ?? null,
+        isPanel: false,
+      });
+    }
+    for (const p of layout.panels) {
+      const units = p.unitKeys
+        .map((k) => unitByKey.get(k))
+        .filter((u): u is BoardUnit => !!u);
+      const geom = panelGeometry(p.key, units);
+      if (!geom) continue;
+      out.push({
+        key: p.key,
+        name: `Panel encolado (${units.length} tablas)`,
+        subtitle: units.map((u) => u.name).join(" + "),
+        species: geom.species,
+        mixed: geom.mixed,
+        lengthIn: geom.lengthIn,
+        widthIn: geom.widthIn,
+        thicknessIn: geom.thicknessIn,
+        seams: geom.seams,
+        strips: geom.strips.map((s) => ({
+          name: s.unit.name,
+          species: s.unit.species,
+          y: s.y,
+          widthIn: s.widthIn,
+        })),
+        photoUrl: null,
+        isPanel: true,
+      });
+    }
+    return out;
+  }, [layout.boards, layout.panels, unitByKey, boardUnits, boardPhotos]);
+  const tableByKey = useMemo(
+    () => new Map(tables.map((t) => [t.key, t])),
+    [tables],
+  );
+
+  // Solo cuentan las colocaciones válidas (superficie en mesa e instancia vigente).
   const placements = useMemo(
     () =>
       layout.placements.filter(
-        (pl) =>
-          instByKey.has(pl.instanceKey) &&
-          layout.boards.some((b) => b.key === pl.boardKey),
+        (pl) => instByKey.has(pl.instanceKey) && tableByKey.has(pl.boardKey),
       ),
-    [layout, instByKey],
+    [layout.placements, instByKey, tableByKey],
   );
   const placedInstanceKeys = useMemo(
     () => new Set(placements.map((p) => p.instanceKey)),
@@ -151,39 +226,71 @@ export function Workbench({
     setLayout((prev) => fn(prev));
   }, []);
 
+  // ---------- Unidades usadas / disponibles ----------
+
+  const usedUnitKeys = useMemo(() => {
+    const used = new Set(layout.boards.map((b) => b.key));
+    for (const p of layout.panels) for (const k of p.unitKeys) used.add(k);
+    if (gluePick) for (const k of gluePick) used.add(k);
+    return used;
+  }, [layout.boards, layout.panels, gluePick]);
+
+  function freeUnitOf(itemId: string): BoardUnit | undefined {
+    return boardUnits.find(
+      (u) => u.itemId === itemId && !usedUnitKeys.has(u.key),
+    );
+  }
+
   // ---------- Tablas sobre la mesa ----------
 
   function addBoard(itemId: string) {
-    mutate((prev) => {
-      const used = new Set(
-        prev.boards.filter((b) => b.itemId === itemId).map((b) => b.unitIndex),
-      );
-      const next = boardUnits.find(
-        (u) => u.itemId === itemId && !used.has(u.unitIndex),
-      );
-      if (!next) return prev;
-      return {
-        ...prev,
-        boards: [
-          ...prev.boards,
-          { key: next.key, itemId, unitIndex: next.unitIndex },
-        ],
-      };
-    });
-  }
-
-  function removeBoard(boardKey: string) {
+    const next = freeUnitOf(itemId);
+    if (!next) return;
+    if (gluePick) {
+      setGluePick([...gluePick, next.key]);
+      return;
+    }
     mutate((prev) => ({
       ...prev,
-      boards: prev.boards.filter((b) => b.key !== boardKey),
-      placements: prev.placements.filter((p) => p.boardKey !== boardKey),
+      boards: [
+        ...prev.boards,
+        { key: next.key, itemId, unitIndex: next.unitIndex },
+      ],
     }));
-    if (selPlaced && placements.some((p) => p.key === selPlaced && p.boardKey === boardKey)) {
-      setSelPlaced(null);
-    }
   }
 
-  // ---------- Encolados manuales ----------
+  function removeTable(key: string) {
+    mutate((prev) => ({
+      ...prev,
+      boards: prev.boards.filter((b) => b.key !== key),
+      panels: prev.panels.filter((p) => p.key !== key),
+      placements: prev.placements.filter((p) => p.boardKey !== key),
+    }));
+    setSelPlaced(null);
+  }
+
+  function createPanel() {
+    if (!gluePick || gluePick.length < 2) return;
+    const key = newKey("panel");
+    const unitKeys = gluePick;
+    mutate((prev) => ({
+      ...prev,
+      panels: [...prev.panels, { key, unitKeys }],
+    }));
+    setGluePick(null);
+  }
+
+  const gluePreview = useMemo(() => {
+    if (!gluePick || gluePick.length < 2) return null;
+    return panelGeometry(
+      "preview",
+      gluePick
+        .map((k) => unitByKey.get(k))
+        .filter((u): u is BoardUnit => !!u),
+    );
+  }, [gluePick, unitByKey]);
+
+  // ---------- Encolados manuales de piezas ----------
 
   function setGlue(partId: string, cfg: WbGlue | null) {
     mutate((prev) => {
@@ -204,7 +311,7 @@ export function Workbench({
 
   // ---------- Colocación ----------
 
-  const rectsByBoard = useMemo(() => {
+  const rectsByTable = useMemo(() => {
     const map = new Map<string, PlacedRect[]>();
     for (const pl of placements) {
       const inst = instByKey.get(pl.instanceKey)!;
@@ -216,29 +323,29 @@ export function Workbench({
     return map;
   }, [placements, instByKey]);
 
-  function placeFromTray(boardKey: string, xi: number, yi: number) {
+  function placeFromTray(tableKey: string, xi: number, yi: number) {
     const inst = selTray ? instByKey.get(selTray) : null;
-    const board = unitByKey.get(boardKey);
-    if (!inst || !board) return;
+    const table = tableByKey.get(tableKey);
+    if (!inst || !table) return;
     // Si entera no cabe pero girada sí, se gira sola.
     let rot = false;
     if (
-      (inst.lengthIn > board.lengthIn + 1e-6 ||
-        inst.widthIn > board.widthIn + 1e-6) &&
-      inst.widthIn <= board.lengthIn + 1e-6 &&
-      inst.lengthIn <= board.widthIn + 1e-6
+      (inst.lengthIn > table.lengthIn + 1e-6 ||
+        inst.widthIn > table.widthIn + 1e-6) &&
+      inst.widthIn <= table.lengthIn + 1e-6 &&
+      inst.lengthIn <= table.widthIn + 1e-6
     ) {
       rot = true;
     }
     const { w, h } = footprint(inst, rot);
-    const others = (rectsByBoard.get(boardKey) ?? []).map((r) => r as Rect);
+    const others = (rectsByTable.get(tableKey) ?? []).map((r) => r as Rect);
     const snapped = snapPosition(
       xi - w / 2,
       yi - h / 2,
       w,
       h,
-      board.lengthIn,
-      board.widthIn,
+      table.lengthIn,
+      table.widthIn,
       others,
     );
     const key = newKey();
@@ -246,7 +353,14 @@ export function Workbench({
       ...prev,
       placements: [
         ...prev.placements,
-        { key, instanceKey: inst.key, boardKey, x: snapped.x, y: snapped.y, rot },
+        {
+          key,
+          instanceKey: inst.key,
+          boardKey: tableKey,
+          x: snapped.x,
+          y: snapped.y,
+          rot,
+        },
       ],
     }));
     setSelTray(null);
@@ -268,15 +382,15 @@ export function Workbench({
       placements: prev.placements.map((p) => {
         if (p.key !== key) return p;
         const inst = instByKey.get(p.instanceKey);
-        const board = unitByKey.get(p.boardKey);
-        if (!inst || !board) return p;
+        const table = tableByKey.get(p.boardKey);
+        if (!inst || !table) return p;
         const rot = !p.rot;
         const { w, h } = footprint(inst, rot);
         return {
           ...p,
           rot,
-          x: Math.min(Math.max(p.x, 0), Math.max(0, board.lengthIn - w)),
-          y: Math.min(Math.max(p.y, 0), Math.max(0, board.widthIn - h)),
+          x: Math.min(Math.max(p.x, 0), Math.max(0, table.lengthIn - w)),
+          y: Math.min(Math.max(p.y, 0), Math.max(0, table.widthIn - h)),
         };
       }),
     }));
@@ -300,7 +414,7 @@ export function Workbench({
 
   function placementIssues(
     r: PlacedRect,
-    board: BoardUnit,
+    table: TableGeom,
     others: PlacedRect[],
   ): { blocking: string[]; warnings: string[] } {
     const blocking: string[] = [];
@@ -308,10 +422,10 @@ export function Workbench({
     if (
       r.x < -1e-6 ||
       r.y < -1e-6 ||
-      r.x + r.w > board.lengthIn + 1e-6 ||
-      r.y + r.h > board.widthIn + 1e-6
+      r.x + r.w > table.lengthIn + 1e-6 ||
+      r.y + r.h > table.widthIn + 1e-6
     ) {
-      blocking.push("se sale de la tabla");
+      blocking.push(table.isPanel ? "se sale del panel" : "se sale de la tabla");
     }
     for (const o of others) {
       if (o.placement.key !== r.placement.key && collide(r, o)) {
@@ -319,27 +433,36 @@ export function Workbench({
         break;
       }
     }
-    if (r.instance.thicknessIn > board.thicknessIn + 1 / 32) {
+    if (r.instance.thicknessIn > table.thicknessIn + 1 / 32) {
       blocking.push(
-        `grosor ${fmt(r.instance.thicknessIn)}″ > tabla ${fmt(board.thicknessIn)}″`,
+        `grosor ${fmt(r.instance.thicknessIn)}″ > ${table.isPanel ? "panel" : "tabla"} ${fmt(table.thicknessIn)}″`,
       );
-    } else if (board.thicknessIn - r.instance.thicknessIn > 1 / 32) {
+    } else if (table.thicknessIn - r.instance.thicknessIn > 1 / 32) {
       warnings.push(
-        `cepillar de ${fmt(board.thicknessIn)}″ a ${fmt(r.instance.thicknessIn)}″`,
+        `cepillar de ${fmt(table.thicknessIn)}″ a ${fmt(r.instance.thicknessIn)}″`,
       );
     }
-    if (
-      r.instance.species &&
-      board.species &&
-      r.instance.species.trim().toLowerCase() !==
-        board.species.trim().toLowerCase()
-    ) {
-      warnings.push(
-        `pide ${r.instance.species}, la tabla es ${board.species}`,
-      );
+    if (r.instance.species) {
+      if (table.mixed) {
+        warnings.push(`pide ${r.instance.species}; el panel mezcla especies`);
+      } else if (
+        table.species &&
+        r.instance.species.trim().toLowerCase() !==
+          table.species.trim().toLowerCase()
+      ) {
+        warnings.push(`pide ${r.instance.species}, aquí hay ${table.species}`);
+      }
     }
     if (r.placement.rot) {
       warnings.push("girada: la veta cruzará el largo de la pieza");
+    }
+    const crossed = table.seams.filter(
+      (s) => r.y < s - 1e-6 && r.y + r.h > s + 1e-6,
+    ).length;
+    if (crossed > 0) {
+      warnings.push(
+        `cruza ${crossed} junta${crossed > 1 ? "s" : ""} de cola`,
+      );
     }
     return { blocking, warnings };
   }
@@ -370,7 +493,7 @@ export function Workbench({
   function onPartPointerMove(
     e: React.PointerEvent<SVGGElement>,
     pl: WbPlacement,
-    board: BoardUnit,
+    table: TableGeom,
   ) {
     const drag = dragRef.current;
     if (!drag || drag.key !== pl.key) return;
@@ -383,7 +506,7 @@ export function Workbench({
     const inst = instByKey.get(pl.instanceKey);
     if (!inst) return;
     const { w, h } = footprint(inst, pl.rot);
-    const others = (rectsByBoard.get(pl.boardKey) ?? [])
+    const others = (rectsByTable.get(pl.boardKey) ?? [])
       .filter((r) => r.placement.key !== pl.key)
       .map((r) => r as Rect);
     const snapped = snapPosition(
@@ -391,8 +514,8 @@ export function Workbench({
       drag.origY + dy,
       w,
       h,
-      board.lengthIn,
-      board.widthIn,
+      table.lengthIn,
+      table.widthIn,
       others,
     );
     movePlacement(pl.key, snapped.x, snapped.y);
@@ -413,12 +536,12 @@ export function Workbench({
   const placedCount = placements.length;
   const selectedRect = useMemo(() => {
     if (!selPlaced) return null;
-    for (const [boardKey, rects] of rectsByBoard) {
+    for (const [tableKey, rects] of rectsByTable) {
       const r = rects.find((x) => x.placement.key === selPlaced);
-      if (r) return { boardKey, rect: r };
+      if (r) return { tableKey, rect: r };
     }
     return null;
-  }, [selPlaced, rectsByBoard]);
+  }, [selPlaced, rectsByTable]);
 
   // Unidades restantes por item para la bandeja de tablas.
   const boardsAvailable = useMemo(() => {
@@ -429,18 +552,15 @@ export function Workbench({
     for (const u of boardUnits) {
       const entry = byItem.get(u.itemId) ?? { unit: u, total: 0, used: 0 };
       entry.total += 1;
+      if (usedUnitKeys.has(u.key)) entry.used += 1;
       byItem.set(u.itemId, entry);
-    }
-    for (const b of layout.boards) {
-      const entry = byItem.get(b.itemId);
-      if (entry) entry.used += 1;
     }
     return [...byItem.values()].sort(
       (a, b) =>
         (a.unit.species ?? "￿").localeCompare(b.unit.species ?? "￿", "es") ||
         a.unit.name.localeCompare(b.unit.name, "es"),
     );
-  }, [boardUnits, layout.boards]);
+  }, [boardUnits, usedUnitKeys]);
 
   // Piezas agrupadas por pieza del despiece para la bandeja.
   const trayGroups = useMemo(() => {
@@ -512,20 +632,51 @@ export function Workbench({
 
       {/* Bandeja de tablas */}
       <section className="panel-paper rounded-2xl p-4">
-        <h3 className="eyebrow text-letterpress mb-2 text-muted-foreground">
-          Tablas
-        </h3>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <h3 className="eyebrow text-letterpress text-muted-foreground">
+            Tablas
+            {gluePick && (
+              <span className="ml-1 normal-case text-[#a4661f]">
+                — elige 2 o más para el panel
+              </span>
+            )}
+          </h3>
+          {!gluePick ? (
+            <button
+              type="button"
+              onClick={() => setGluePick([])}
+              className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs hover:bg-accent"
+            >
+              <Link2 className="h-3.5 w-3.5" /> Encolar tablas
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setGluePick(null)}
+              className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+            >
+              Cancelar
+            </button>
+          )}
+        </div>
         <div className="flex flex-wrap gap-2">
           {boardsAvailable.map(({ unit, total, used }) => {
             const left = total - used;
             const ratio = Math.min(unit.lengthIn / unit.widthIn, 8);
+            const picked = gluePick
+              ? gluePick.filter((k) => k.startsWith(`${unit.itemId}#`)).length
+              : 0;
             return (
               <button
                 key={unit.itemId}
                 type="button"
                 disabled={left <= 0}
                 onClick={() => addBoard(unit.itemId)}
-                className="flex items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-1.5 text-left text-xs shadow-sm transition hover:-translate-y-0.5 hover:shadow disabled:cursor-not-allowed disabled:opacity-40"
+                className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left text-xs shadow-sm transition hover:-translate-y-0.5 hover:shadow disabled:cursor-not-allowed disabled:opacity-40 ${
+                  picked > 0
+                    ? "border-[#a4661f] bg-[#a4661f]/10"
+                    : "border-border bg-card"
+                }`}
               >
                 <span
                   className="block rounded-[2px] border"
@@ -537,7 +688,12 @@ export function Workbench({
                   }}
                 />
                 <span>
-                  <span className="block font-semibold">{unit.name}</span>
+                  <span className="block font-semibold">
+                    {unit.name}
+                    {picked > 0 && (
+                      <span className="ml-1 text-[#a4661f]">×{picked}</span>
+                    )}
+                  </span>
                   <span className="block tabular-nums text-muted-foreground">
                     {fmt(unit.lengthIn)}″ × {fmt(unit.widthIn)}″ ·{" "}
                     {left > 0 ? `quedan ${left}` : "todas en la mesa"}
@@ -553,6 +709,38 @@ export function Workbench({
             </p>
           )}
         </div>
+        {gluePick && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg bg-accent/50 px-2.5 py-2 text-xs">
+            {gluePick.length < 2 ? (
+              <span className="text-muted-foreground">
+                Toca las tablas de arriba en el orden en que las encolarías al
+                canto (puedes repetir una si tienes varias unidades).
+              </span>
+            ) : (
+              <>
+                <span>
+                  Panel resultante:{" "}
+                  <strong className="tabular-nums">
+                    {fmt(gluePreview!.lengthIn)}″ × {fmt(gluePreview!.widthIn)}″
+                    × {fmt(gluePreview!.thicknessIn)}″
+                  </strong>{" "}
+                  ({gluePick.length} tablas, {gluePick.length - 1} junta
+                  {gluePick.length > 2 ? "s" : ""})
+                </span>
+                {gluePreview!.mixed && (
+                  <span className="text-[#8a6a1f]">⚠ mezcla especies</span>
+                )}
+                <button
+                  type="button"
+                  onClick={createPanel}
+                  className="inline-flex items-center gap-1 rounded-md border border-[#8a5a24] bg-gradient-to-b from-[#f0bd6b] to-[#cf8f33] px-2.5 py-1 font-semibold text-[#3b2712] shadow-sm"
+                >
+                  <Link2 className="h-3.5 w-3.5" /> Crear panel
+                </button>
+              </>
+            )}
+          </div>
+        )}
       </section>
 
       {/* Bandeja de piezas */}
@@ -649,63 +837,67 @@ export function Workbench({
         )}
       </section>
 
-      {/* Tablas sobre la mesa */}
-      {layout.boards.length === 0 ? (
+      {/* Superficies sobre la mesa */}
+      {tables.length === 0 ? (
         <div className="rounded-2xl border-2 border-dashed border-[#c9b28c] p-8 text-center text-sm text-muted-foreground">
           La mesa está vacía: añade una tabla de la bandeja de arriba.
         </div>
       ) : (
-        layout.boards.map((b) => {
-          const board = unitByKey.get(b.key);
-          if (!board) return null;
-          const rects = rectsByBoard.get(b.key) ?? [];
+        tables.map((table) => {
+          const rects = rectsByTable.get(table.key) ?? [];
           const usedArea = rects.reduce((s, r) => s + r.w * r.h, 0);
-          const utilization = usedArea / (board.lengthIn * board.widthIn);
-          const hole = largestFreeRect(board.lengthIn, board.widthIn, rects);
-          const W = board.lengthIn * pxPerIn;
-          const H = board.widthIn * pxPerIn;
-          const photo = boardPhotos[board.itemId];
+          const utilization = usedArea / (table.lengthIn * table.widthIn);
+          const hole = largestFreeRect(table.lengthIn, table.widthIn, rects);
+          const W = table.lengthIn * pxPerIn;
+          const H = table.widthIn * pxPerIn;
           const selHere =
-            selectedRect && selectedRect.boardKey === b.key
+            selectedRect && selectedRect.tableKey === table.key
               ? selectedRect.rect
               : null;
           const selIssues = selHere
-            ? placementIssues(selHere, board, rects)
+            ? placementIssues(selHere, table, rects)
             : null;
           return (
-            <section key={b.key} className="panel-paper rounded-2xl p-3 sm:p-4">
-              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                <div className="flex min-w-0 items-center gap-2">
-                  {photo && (
+            <section key={table.key} className="panel-paper rounded-2xl p-3 sm:p-4">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  {table.photoUrl && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={photo}
+                      src={table.photoUrl}
                       alt=""
                       className="h-8 w-8 shrink-0 object-contain"
                     />
                   )}
+                  {table.isPanel && (
+                    <Link2 className="h-4 w-4 shrink-0 text-[#a4661f]" />
+                  )}
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold">
-                      {board.name}
-                      {boardUnits.filter((u) => u.itemId === board.itemId)
-                        .length > 1 && (
+                      {table.name}
+                      {table.subtitle && !table.isPanel && (
                         <span className="ml-1 text-xs font-normal text-muted-foreground">
-                          (unidad {board.unitIndex + 1})
+                          ({table.subtitle})
                         </span>
                       )}
                     </p>
-                    <p className="text-xs tabular-nums text-muted-foreground">
-                      {fmt(board.lengthIn)}″ × {fmt(board.widthIn)}″ ×{" "}
-                      {fmt(board.thicknessIn)}″
-                      {board.species ? ` · ${board.species}` : ""}
+                    <p className="truncate text-xs tabular-nums text-muted-foreground">
+                      {fmt(table.lengthIn)}″ × {fmt(table.widthIn)}″ ×{" "}
+                      {fmt(table.thicknessIn)}″
+                      {table.mixed
+                        ? " · mezcla de especies"
+                        : table.species
+                          ? ` · ${table.species}`
+                          : ""}
+                      {table.isPanel && ` · ${table.subtitle}`}
                     </p>
                   </div>
                 </div>
                 <button
                   type="button"
-                  aria-label={`Quitar ${board.name} de la mesa`}
-                  onClick={() => removeBoard(b.key)}
-                  className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+                  aria-label={`Quitar ${table.name} de la mesa`}
+                  onClick={() => removeTable(table.key)}
+                  className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -723,12 +915,12 @@ export function Workbench({
                       return;
                     }
                     const pt = svgPoint(e, e.currentTarget);
-                    placeFromTray(b.key, pt.x, pt.y);
+                    placeFromTray(table.key, pt.x, pt.y);
                   }}
                 >
-                  {/* Tabla */}
+                  {/* Superficie */}
                   <defs>
-                    <linearGradient id={`wood-${b.key}`} x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id={`wood-${table.key}`} x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0" stopColor="#d9b98a" />
                       <stop offset="0.5" stopColor="#cfa872" />
                       <stop offset="1" stopColor="#c39a63" />
@@ -739,13 +931,55 @@ export function Workbench({
                     y={0}
                     width={W}
                     height={H}
-                    fill={`url(#wood-${b.key})`}
+                    fill={`url(#wood-${table.key})`}
                     stroke="#8a6a3f"
                   />
+                  {/* Tintes por tira (paneles con especies distintas) */}
+                  {table.mixed &&
+                    table.strips.map((s, i) => (
+                      <rect
+                        key={`strip${i}`}
+                        x={0}
+                        y={s.y * pxPerIn}
+                        width={W}
+                        height={s.widthIn * pxPerIn}
+                        fill={speciesColor(s.species, 0.14)}
+                      />
+                    ))}
+                  {/* Juntas de cola */}
+                  {table.seams.map((s, i) => (
+                    <line
+                      key={`seam${i}`}
+                      x1={0}
+                      y1={s * pxPerIn}
+                      x2={W}
+                      y2={s * pxPerIn}
+                      stroke="#7a5a2f"
+                      strokeWidth={1.5}
+                      strokeDasharray="7 4"
+                      opacity={0.85}
+                    />
+                  ))}
+                  {/* Nombre de cada tira del panel */}
+                  {table.isPanel &&
+                    pxPerIn >= 4 &&
+                    table.strips.map((s, i) => (
+                      <text
+                        key={`stripname${i}`}
+                        x={4}
+                        y={(s.y + s.widthIn / 2) * pxPerIn + 3}
+                        fontSize={9}
+                        fill="#6b4f2a"
+                        opacity={0.8}
+                        style={{ pointerEvents: "none", userSelect: "none" }}
+                      >
+                        {s.name.length > 24 ? `${s.name.slice(0, 23)}…` : s.name}
+                      </text>
+                    ))}
                   {/* Regla: marcas cada pulgada, más fuertes cada 6″ */}
                   {pxPerIn >= 4 &&
                     Array.from(
-                      { length: Math.floor(board.lengthIn) },
+                      { length: Math.floor(table.lengthIn) },
                       (_, i) => i + 1,
                     ).map((i) => (
                       <line
@@ -761,7 +995,7 @@ export function Workbench({
                     ))}
                   {pxPerIn >= 4 &&
                     Array.from(
-                      { length: Math.floor(board.widthIn) },
+                      { length: Math.floor(table.widthIn) },
                       (_, i) => i + 1,
                     ).map((i) => (
                       <line
@@ -778,7 +1012,7 @@ export function Workbench({
 
                   {/* Piezas colocadas */}
                   {rects.map((r) => {
-                    const issues = placementIssues(r, board, rects);
+                    const issues = placementIssues(r, table, rects);
                     const invalid = issues.blocking.length > 0;
                     const selected = selPlaced === r.placement.key;
                     const showLabel = r.w * pxPerIn > 46 && r.h * pxPerIn > 14;
@@ -787,7 +1021,7 @@ export function Workbench({
                         key={r.placement.key}
                         onPointerDown={(e) => onPartPointerDown(e, r.placement)}
                         onPointerMove={(e) =>
-                          onPartPointerMove(e, r.placement, board)
+                          onPartPointerMove(e, r.placement, table)
                         }
                         onPointerUp={(e) => onPartPointerUp(e, r.placement)}
                         style={{ cursor: "grab" }}
@@ -895,9 +1129,9 @@ export function Workbench({
                         />
                       );
                       const left = r.x;
-                      const right = board.lengthIn - (r.x + r.w);
+                      const right = table.lengthIn - (r.x + r.w);
                       const top = r.y;
-                      const bottom = board.widthIn - (r.y + r.h);
+                      const bottom = table.widthIn - (r.y + r.h);
                       return (
                         <g>
                           {left > 0.05 && (
@@ -992,9 +1226,11 @@ export function Workbench({
 
       <p className="text-xs text-muted-foreground">
         El kerf de la sierra (1/8″) se respeta entre piezas: los imanes dejan
-        el hueco solos. Girar una pieza cruza su veta con la de la tabla — la
-        mesa avisa pero no lo impide. Y como siempre: esto es un plano; el
-        inventario lo actualizas tú a mano cuando cortes.
+        el hueco solos. Un panel encolado se retesta al largo de la tabla más
+        corta y pierde 1/8″ de canteado por junta. Girar una pieza cruza su
+        veta con la de la tabla — la mesa avisa pero no lo impide. Y como
+        siempre: esto es un plano; el inventario lo actualizas tú a mano
+        cuando cortes.
       </p>
     </div>
   );

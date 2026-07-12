@@ -3,12 +3,13 @@
 // del mayor hueco libre de cada tabla. Sin dependencias de React ni del
 // servidor: se usa desde el componente cliente.
 
-import { KERF_IN } from "./optimizer";
+import { KERF_IN, type BoardUnit } from "./optimizer";
 
 export { KERF_IN };
 export const SNAP_IN = 0.4; // distancia a la que "imanta" un borde
 export const WIDTH_GLUE_ALLOW_IN = 0.125; // demasía de canteado por tira
 export const THICK_GLUE_ALLOW_IN = 1 / 16; // demasía de cepillado por capa
+export const PANEL_JOINT_LOSS_IN = 0.125; // pérdida de canteado por junta de panel
 
 export type GlueAxis = "ancho" | "grosor";
 
@@ -17,10 +18,19 @@ export interface WbGlue {
   axis: GlueAxis;
 }
 
+/** Panel encolado: varias unidades de tabla unidas al canto. */
+export interface WbPanel {
+  key: string;
+  /** Claves de las unidades (`${itemId}#${n}`) en orden de encolado. */
+  unitKeys: string[];
+}
+
 /** Estado persistido en projects.workbench. */
 export interface WbLayout {
   /** Unidades de tabla puestas sobre la mesa. */
   boards: { key: string; itemId: string; unitIndex: number }[];
+  /** Paneles encolados sobre la mesa. */
+  panels: WbPanel[];
   placements: WbPlacement[];
   /** Encolado manual activo por pieza del despiece. */
   glue: Record<string, WbGlue>;
@@ -36,13 +46,19 @@ export interface WbPlacement {
   rot: boolean; // girada 90° (la veta de la pieza cruza la de la tabla)
 }
 
-export const EMPTY_LAYOUT: WbLayout = { boards: [], placements: [], glue: {} };
+export const EMPTY_LAYOUT: WbLayout = {
+  boards: [],
+  panels: [],
+  placements: [],
+  glue: {},
+};
 
 export function normalizeLayout(raw: unknown): WbLayout {
   if (typeof raw !== "object" || raw === null) return EMPTY_LAYOUT;
   const l = raw as Partial<WbLayout>;
   return {
     boards: Array.isArray(l.boards) ? l.boards : [],
+    panels: Array.isArray(l.panels) ? l.panels : [],
     placements: Array.isArray(l.placements) ? l.placements : [],
     glue: typeof l.glue === "object" && l.glue !== null ? l.glue : {},
   };
@@ -240,6 +256,51 @@ export function largestFreeRect(
     }
   }
   return { w: best.w * res, h: best.h * res };
+}
+
+/** Geometría resultante de encolar tablas al canto, en orden. */
+export interface PanelGeometry {
+  key: string;
+  lengthIn: number; // el largo de la tabla más corta (el panel se retesta)
+  widthIn: number; // suma de anchos menos la pérdida de canteado por junta
+  thicknessIn: number; // el grosor de la más fina (se cepilla a ras)
+  species: string | null; // especie común; null si es mezcla
+  mixed: boolean;
+  strips: { unit: BoardUnit; y: number; widthIn: number }[];
+  seams: number[]; // posiciones y de las juntas de cola
+}
+
+export function panelGeometry(
+  key: string,
+  units: BoardUnit[],
+): PanelGeometry | null {
+  if (units.length < 2) return null;
+  const n = units.length;
+  const speciesSet = new Set(
+    units.map((u) => (u.species ?? "").trim().toLowerCase()),
+  );
+  const mixed = speciesSet.size > 1;
+  let y = 0;
+  const strips: PanelGeometry["strips"] = [];
+  const seams: number[] = [];
+  units.forEach((unit, i) => {
+    // Cada junta come PANEL_JOINT_LOSS_IN, mitad de cada lado.
+    const joints = (i > 0 ? 1 : 0) + (i < n - 1 ? 1 : 0);
+    const w = unit.widthIn - (joints * PANEL_JOINT_LOSS_IN) / 2;
+    strips.push({ unit, y, widthIn: w });
+    y += w;
+    if (i < n - 1) seams.push(y);
+  });
+  return {
+    key,
+    lengthIn: Math.min(...units.map((u) => u.lengthIn)),
+    widthIn: y,
+    thicknessIn: Math.min(...units.map((u) => u.thicknessIn)),
+    species: mixed ? null : units[0].species,
+    mixed,
+    strips,
+    seams,
+  };
 }
 
 /** Color estable por especie (tono pastel) para pintar las piezas. */
