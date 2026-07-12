@@ -17,10 +17,14 @@ import { BoardPicker } from "@/components/board-picker";
 import { PartSpeciesSelect } from "@/components/part-species-select";
 import { StepImport } from "@/components/step-import";
 import { WorkshopAdvice } from "@/components/workshop-advice";
-import { PROJECT_STATUS_LABELS } from "@/components/project-form";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { formatInches, isNonWoodMaterial } from "@/lib/utils";
+import {
+  formatInches,
+  isNonWoodMaterial,
+  PROJECT_STATUS_LABELS,
+} from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 

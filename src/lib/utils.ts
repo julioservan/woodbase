@@ -88,6 +88,15 @@ export const CUT_LABELS: Record<CutType, string> = {
   plywood: "Plywood",
 };
 
+// Vive aquí (módulo compartido, no en un componente "use client") para que
+// las páginas de servidor puedan leer las etiquetas: los exports de módulos
+// cliente llegan como referencias, no como datos.
+export const PROJECT_STATUS_LABELS: Record<string, string> = {
+  idea: "Idea",
+  en_curso: "En curso",
+  terminado: "Terminado",
+};
+
 // Especies habituales: clásicas de EE. UU. + las del taller, en formato
 // "inglés (español)". La opción "Otra…" de los formularios abre campo libre.
 export const SPECIES_OPTIONS = [

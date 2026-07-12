@@ -8,12 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-
-export const PROJECT_STATUS_LABELS: Record<string, string> = {
-  idea: "Idea",
-  en_curso: "En curso",
-  terminado: "Terminado",
-};
+import { PROJECT_STATUS_LABELS } from "@/lib/utils";
 
 export function ProjectForm({
   project,
