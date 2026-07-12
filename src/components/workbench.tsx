@@ -81,6 +81,8 @@ interface TableGeom {
   }[];
   photoUrl: string | null;
   isPanel: boolean;
+  /** Unidades que componen el panel, en orden de encolado. */
+  unitKeys: string[];
 }
 
 /** Borde derecho real de madera bajo la franja y0..y0+h (tiras de panel). */
@@ -172,6 +174,7 @@ export function Workbench({
         strips: [],
         photoUrl: boardPhotos[unit.itemId] ?? null,
         isPanel: false,
+        unitKeys: [unit.key],
       });
     }
     for (const p of layout.panels) {
@@ -200,6 +203,7 @@ export function Workbench({
         })),
         photoUrl: null,
         isPanel: true,
+        unitKeys: p.unitKeys,
       });
     }
     return out;
@@ -305,11 +309,115 @@ export function Workbench({
     if (!gluePick || gluePick.length < 2) return;
     const key = newKey("panel");
     const unitKeys = gluePick;
+    const picked = new Set(unitKeys);
     mutate((prev) => ({
       ...prev,
+      // Las tablas sueltas que entran al panel salen de la mesa; sus piezas
+      // vuelven a la bandeja (las coordenadas ya no significan lo mismo).
+      boards: prev.boards.filter((b) => !picked.has(b.key)),
+      placements: prev.placements.filter((pl) => !picked.has(pl.boardKey)),
       panels: [...prev.panels, { key, unitKeys }],
     }));
     setGluePick(null);
+  }
+
+  /** Añade una unidad libre de un item al final de un panel existente. */
+  function addStripToPanel(panelKey: string, itemId: string) {
+    const unit = freeUnitOf(itemId);
+    if (!unit) return;
+    mutate((prev) => ({
+      ...prev,
+      panels: prev.panels.map((p) =>
+        p.key === panelKey ? { ...p, unitKeys: [...p.unitKeys, unit.key] } : p,
+      ),
+    }));
+  }
+
+  /** Quita una tira del panel; las piezas que la pisaban vuelven a la bandeja. */
+  function removeStripFromPanel(panelKey: string, unitKey: string) {
+    mutate((prev) => {
+      const panel = prev.panels.find((p) => p.key === panelKey);
+      if (!panel) return prev;
+      const units = panel.unitKeys
+        .map((k) => unitByKey.get(k))
+        .filter((u): u is BoardUnit => !!u);
+      const geom = panelGeometry(panel.key, units);
+      const idx = panel.unitKeys.indexOf(unitKey);
+      const removed = geom?.strips[idx];
+      const rest = panel.unitKeys.filter((k) => k !== unitKey);
+      const lastUnit = rest.length === 1 ? unitByKey.get(rest[0]) : undefined;
+      const placements = prev.placements.flatMap((pl) => {
+        if (pl.boardKey !== panel.key) return [pl];
+        const inst = instByKey.get(pl.instanceKey);
+        if (!inst || !removed) return [pl];
+        const { h } = footprint(inst, pl.rot);
+        const y0 = removed.y;
+        const y1 = removed.y + removed.widthIn;
+        // Pisaba la tira quitada → a la bandeja.
+        if (pl.y < y1 - 1e-6 && pl.y + h > y0 + 1e-6) return [];
+        const y = pl.y >= y1 - 1e-6 ? pl.y - removed.widthIn : pl.y;
+        return [{ ...pl, y, boardKey: lastUnit ? lastUnit.key : pl.boardKey }];
+      });
+      if (lastUnit) {
+        // Con una sola tira ya no es panel: vuelve a ser tabla suelta.
+        return {
+          ...prev,
+          panels: prev.panels.filter((p) => p.key !== panel.key),
+          boards: [
+            ...prev.boards,
+            {
+              key: lastUnit.key,
+              itemId: lastUnit.itemId,
+              unitIndex: lastUnit.unitIndex,
+            },
+          ],
+          placements,
+        };
+      }
+      return {
+        ...prev,
+        panels: prev.panels.map((p) =>
+          p.key === panel.key ? { ...p, unitKeys: rest } : p,
+        ),
+        placements,
+      };
+    });
+    setSelPlaced(null);
+  }
+
+  /** Deshace el panel dejando sus tablas sueltas sobre la mesa. */
+  function ungluePanel(panelKey: string) {
+    mutate((prev) => {
+      const panel = prev.panels.find((p) => p.key === panelKey);
+      if (!panel) return prev;
+      const units = panel.unitKeys
+        .map((k) => unitByKey.get(k))
+        .filter((u): u is BoardUnit => !!u);
+      return {
+        ...prev,
+        panels: prev.panels.filter((p) => p.key !== panelKey),
+        boards: [
+          ...prev.boards,
+          ...units.map((u) => ({
+            key: u.key,
+            itemId: u.itemId,
+            unitIndex: u.unitIndex,
+          })),
+        ],
+        placements: prev.placements.filter((pl) => pl.boardKey !== panelKey),
+      };
+    });
+    setSelPlaced(null);
+  }
+
+  /** En modo encolado, mete/saca una tabla suelta de la mesa en el panel. */
+  function toggleMesaBoardInPick(unitKey: string) {
+    setGluePick((cur) => {
+      if (!cur) return cur;
+      return cur.includes(unitKey)
+        ? cur.filter((k) => k !== unitKey)
+        : [...cur, unitKey];
+    });
   }
 
   const gluePreview = useMemo(() => {
@@ -764,10 +872,33 @@ export function Workbench({
         </div>
         {gluePick && (
           <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg bg-accent/50 px-2.5 py-2 text-xs">
+            {gluePick.map((k) => {
+              const u = unitByKey.get(k);
+              return (
+                <span
+                  key={k}
+                  className="inline-flex items-center gap-1 rounded-md border border-[#a4661f]/50 bg-card px-1.5 py-0.5"
+                >
+                  {u?.name ?? "?"}
+                  <button
+                    type="button"
+                    aria-label={`Quitar ${u?.name ?? ""} del panel`}
+                    onClick={() =>
+                      setGluePick((cur) =>
+                        cur ? cur.filter((x) => x !== k) : cur,
+                      )
+                    }
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              );
+            })}
             {gluePick.length < 2 ? (
               <span className="text-muted-foreground">
-                Toca las tablas de arriba en el orden en que las encolarías al
-                canto (puedes repetir una si tienes varias unidades).
+                Toca tablas de la bandeja o de la mesa, en el orden en que las
+                encolarías al canto (repite una si tienes varias unidades).
               </span>
             ) : (
               <>
@@ -963,15 +1094,83 @@ export function Workbench({
                     </p>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  aria-label={`Quitar ${table.name} de la mesa`}
-                  onClick={() => removeTable(table.key)}
-                  className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+                <div className="flex shrink-0 items-center gap-1">
+                  {gluePick && !table.isPanel && (
+                    <button
+                      type="button"
+                      onClick={() => toggleMesaBoardInPick(table.key)}
+                      className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs ${
+                        gluePick.includes(table.key)
+                          ? "border-[#a4661f] bg-[#a4661f]/15 font-semibold text-[#7a4c16]"
+                          : "border-border bg-card hover:bg-accent"
+                      }`}
+                    >
+                      <Link2 className="h-3 w-3" />
+                      {gluePick.includes(table.key) ? "En el panel ✓" : "Al panel"}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    aria-label={`Quitar ${table.name} de la mesa`}
+                    onClick={() => removeTable(table.key)}
+                    className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
+
+              {/* Editor de tiras del panel: quitar, añadir, desencolar */}
+              {table.isPanel && (
+                <div className="mb-2 flex flex-wrap items-center gap-1.5 text-xs">
+                  {table.unitKeys.map((k) => {
+                    const u = unitByKey.get(k);
+                    const dup =
+                      u &&
+                      boardUnits.filter((x) => x.itemId === u.itemId).length > 1;
+                    return (
+                      <span
+                        key={k}
+                        className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-1.5 py-0.5"
+                      >
+                        {u ? `${u.name}${dup ? ` (${u.unitIndex + 1})` : ""}` : "?"}
+                        <button
+                          type="button"
+                          aria-label={`Quitar ${u?.name ?? "tira"} del panel`}
+                          onClick={() => removeStripFromPanel(table.key, k)}
+                          className="text-muted-foreground hover:text-[#a4372a]"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    );
+                  })}
+                  <select
+                    aria-label={`Añadir tabla al ${table.name}`}
+                    className="rounded-md border border-border bg-card px-1.5 py-1"
+                    value=""
+                    onChange={(e) => {
+                      if (e.target.value) addStripToPanel(table.key, e.target.value);
+                    }}
+                  >
+                    <option value="">+ añadir tabla…</option>
+                    {boardsAvailable
+                      .filter(({ total, used }) => total - used > 0)
+                      .map(({ unit }) => (
+                        <option key={unit.itemId} value={unit.itemId}>
+                          {unit.name} ({fmt(unit.lengthIn)}″ × {fmt(unit.widthIn)}″)
+                        </option>
+                      ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => ungluePanel(table.key)}
+                    className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 hover:bg-accent"
+                  >
+                    <Link2 className="h-3 w-3" /> Desencolar
+                  </button>
+                </div>
+              )}
 
               <div className="overflow-x-auto">
                 <svg
