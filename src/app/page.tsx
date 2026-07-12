@@ -308,7 +308,7 @@ export default async function HomePage({
                     {usedBy && usedBy.length > 0 && (
                       <p
                         title={`En uso en: ${usedBy.join(", ")}`}
-                        className="!mt-2 inline-block max-w-full -rotate-[2deg] truncate rounded-[3px] border-2 border-[#a4661f]/60 px-1.5 py-px text-[9px] font-black uppercase tracking-[0.1em] text-[#a4661f]/85"
+                        className="!mt-2 inline-block max-w-full -rotate-[2deg] rounded-[3px] border-2 border-[#a4661f]/60 px-1.5 py-0.5 text-[9px] font-black uppercase leading-snug tracking-[0.1em] text-[#a4661f]/85"
                       >
                         En uso · {usedBy[0]}
                         {usedBy.length > 1 && ` +${usedBy.length - 1}`}

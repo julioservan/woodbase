@@ -78,7 +78,7 @@ export default async function ProjectsPage() {
                       src={project.photoUrl}
                       alt={`Imagen de ${project.name}`}
                       loading="lazy"
-                      className="h-36 w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                      className="h-auto w-full transition-transform duration-300 group-hover:scale-[1.03]"
                     />
                   </div>
                 )}

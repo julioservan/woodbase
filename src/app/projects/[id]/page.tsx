@@ -141,7 +141,7 @@ export default async function ProjectDetailPage({
             <img
               src={project.photoUrl}
               alt={`Imagen de ${project.name}`}
-              className="max-h-80 w-full rounded-xl object-contain"
+              className="h-auto w-full rounded-xl"
             />
           </section>
         )}
