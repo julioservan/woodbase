@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Loader2 } from "lucide-react";
+import { ChevronUp, Loader2, Plus } from "lucide-react";
 import { updateProjectBoards } from "@/app/projects/actions";
 import { formatInches } from "@/lib/utils";
 
@@ -46,6 +46,9 @@ export function BoardPicker({
   selected: string[];
 }) {
   const [ids, setIds] = useState<Set<string>>(new Set(selected));
+  // Con maderas elegidas, la vista se simplifica: solo las elegidas; el
+  // resto se despliega bajo demanda para añadir más.
+  const [showAll, setShowAll] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   function toggle(id: string) {
@@ -58,8 +61,18 @@ export function BoardPicker({
 
   function clear() {
     setIds(new Set());
+    setShowAll(false);
     startTransition(() => updateProjectBoards(projectId, []));
   }
+
+  const sorted = [...boards].sort(
+    (a, b) =>
+      (a.species ?? "￿").localeCompare(b.species ?? "￿", "es") ||
+      a.name.localeCompare(b.name, "es"),
+  );
+  const compact = ids.size > 0 && !showAll;
+  const visible = compact ? sorted.filter((b) => ids.has(b.id)) : sorted;
+  const hiddenCount = sorted.length - ids.size;
 
   return (
     <div className="panel-paper rounded-2xl p-4 sm:p-5">
@@ -85,13 +98,7 @@ export function BoardPicker({
         )}
       </div>
       <ul className="grid gap-x-4 gap-y-1 sm:grid-cols-2">
-        {[...boards]
-          .sort(
-            (a, b) =>
-              (a.species ?? "￿").localeCompare(b.species ?? "￿", "es") ||
-              a.name.localeCompare(b.name, "es"),
-          )
-          .map((b) => {
+        {visible.map((b) => {
           const dims =
             b.lengthIn != null && b.widthIn != null && b.thicknessIn != null
               ? `${formatInches(b.lengthIn)}″ × ${formatInches(b.widthIn)}″ × ${formatInches(b.thicknessIn)}″`
@@ -141,6 +148,27 @@ export function BoardPicker({
           );
         })}
       </ul>
+      {ids.size > 0 &&
+        (compact ? (
+          hiddenCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowAll(true)}
+              className="mt-2 inline-flex items-center gap-1 rounded-md border border-dashed border-[#a5865a]/70 px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-[#a5865a] hover:text-foreground"
+            >
+              <Plus className="h-3.5 w-3.5" /> Añadir más maderas (
+              {hiddenCount} más)
+            </button>
+          )
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowAll(false)}
+            className="mt-2 inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ChevronUp className="h-3.5 w-3.5" /> Ver solo las elegidas
+          </button>
+        ))}
     </div>
   );
 }
