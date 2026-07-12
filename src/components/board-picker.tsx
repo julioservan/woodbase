@@ -18,6 +18,22 @@ interface BoardOption {
   photoUrl: string | null;
 }
 
+const SINGULAR: Record<string, string> = {
+  tablones: "tablón",
+  piezas: "pieza",
+  unidades: "unidad",
+  planchas: "plancha",
+  paneles: "panel",
+  bloques: "bloque",
+  palos: "palo",
+};
+
+function formatQuantity(quantity: number, unit: string) {
+  const n = Number.isInteger(quantity) ? quantity : quantity.toFixed(1);
+  const u = quantity === 1 ? (SINGULAR[unit.toLowerCase()] ?? unit) : unit;
+  return `${n} ${u}`;
+}
+
 // Maderas del inventario elegidas para el proyecto: el plan de corte solo
 // usa las marcadas; sin ninguna marcada, usa todo el taller.
 export function BoardPicker({
@@ -115,8 +131,8 @@ export function BoardPicker({
                       Scrap
                     </span>
                   )}
-                  <span className="block truncate text-xs tabular-nums text-muted-foreground">
-                    {dims}
+                  <span className="block text-xs tabular-nums text-muted-foreground">
+                    {dims} · {formatQuantity(b.quantity, b.unit)}
                     {b.species ? ` · ${b.species}` : ""}
                   </span>
                 </span>
