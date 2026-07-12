@@ -321,9 +321,27 @@ export function Workbench({
     setGluePick(null);
   }
 
-  /** Añade una unidad libre de un item al final de un panel existente. */
-  function addStripToPanel(panelKey: string, itemId: string) {
-    const unit = freeUnitOf(itemId);
+  /**
+   * Añade una tabla al final de un panel: una unidad libre (`libre:itemId`)
+   * o una tabla suelta que ya está en la mesa (`mesa:unitKey`), cuyas piezas
+   * vuelven a la bandeja.
+   */
+  function addStripToPanel(panelKey: string, source: string) {
+    const [kind, id] = source.split(":", 2);
+    if (kind === "mesa") {
+      const unit = unitByKey.get(id);
+      if (!unit) return;
+      mutate((prev) => ({
+        ...prev,
+        boards: prev.boards.filter((b) => b.key !== id),
+        placements: prev.placements.filter((pl) => pl.boardKey !== id),
+        panels: prev.panels.map((p) =>
+          p.key === panelKey ? { ...p, unitKeys: [...p.unitKeys, id] } : p,
+        ),
+      }));
+      return;
+    }
+    const unit = freeUnitOf(id);
     if (!unit) return;
     mutate((prev) => ({
       ...prev,
@@ -333,7 +351,10 @@ export function Workbench({
     }));
   }
 
-  /** Quita una tira del panel; las piezas que la pisaban vuelven a la bandeja. */
+  /**
+   * Desencola UNA tira del panel: la tabla queda suelta sobre la mesa y las
+   * piezas que la pisaban vuelven a la bandeja (el resto se desplaza).
+   */
   function removeStripFromPanel(panelKey: string, unitKey: string) {
     mutate((prev) => {
       const panel = prev.panels.find((p) => p.key === panelKey);
@@ -358,6 +379,11 @@ export function Workbench({
         const y = pl.y >= y1 - 1e-6 ? pl.y - removed.widthIn : pl.y;
         return [{ ...pl, y, boardKey: lastUnit ? lastUnit.key : pl.boardKey }];
       });
+      // La tira desencolada queda suelta sobre la mesa.
+      const freed = unitByKey.get(unitKey);
+      const freedBoards = freed
+        ? [{ key: freed.key, itemId: freed.itemId, unitIndex: freed.unitIndex }]
+        : [];
       if (lastUnit) {
         // Con una sola tira ya no es panel: vuelve a ser tabla suelta.
         return {
@@ -365,6 +391,7 @@ export function Workbench({
           panels: prev.panels.filter((p) => p.key !== panel.key),
           boards: [
             ...prev.boards,
+            ...freedBoards,
             {
               key: lastUnit.key,
               itemId: lastUnit.itemId,
@@ -376,6 +403,7 @@ export function Workbench({
       }
       return {
         ...prev,
+        boards: [...prev.boards, ...freedBoards],
         panels: prev.panels.map((p) =>
           p.key === panel.key ? { ...p, unitKeys: rest } : p,
         ),
@@ -1136,7 +1164,8 @@ export function Workbench({
                         {u ? `${u.name}${dup ? ` (${u.unitIndex + 1})` : ""}` : "?"}
                         <button
                           type="button"
-                          aria-label={`Quitar ${u?.name ?? "tira"} del panel`}
+                          aria-label={`Desencolar ${u?.name ?? "tira"} (queda suelta en la mesa)`}
+                          title="Desencolar esta tabla: queda suelta en la mesa"
                           onClick={() => removeStripFromPanel(table.key, k)}
                           className="text-muted-foreground hover:text-[#a4372a]"
                         >
@@ -1154,13 +1183,30 @@ export function Workbench({
                     }}
                   >
                     <option value="">+ añadir tabla…</option>
-                    {boardsAvailable
-                      .filter(({ total, used }) => total - used > 0)
-                      .map(({ unit }) => (
-                        <option key={unit.itemId} value={unit.itemId}>
-                          {unit.name} ({fmt(unit.lengthIn)}″ × {fmt(unit.widthIn)}″)
-                        </option>
-                      ))}
+                    {layout.boards.length > 0 && (
+                      <optgroup label="Sueltas en la mesa">
+                        {layout.boards.map((b) => {
+                          const u = unitByKey.get(b.key);
+                          if (!u) return null;
+                          return (
+                            <option key={b.key} value={`mesa:${b.key}`}>
+                              {u.name} ({fmt(u.lengthIn)}″ × {fmt(u.widthIn)}″)
+                            </option>
+                          );
+                        })}
+                      </optgroup>
+                    )}
+                    {boardsAvailable.some(({ total, used }) => total - used > 0) && (
+                      <optgroup label="Disponibles">
+                        {boardsAvailable
+                          .filter(({ total, used }) => total - used > 0)
+                          .map(({ unit }) => (
+                            <option key={unit.itemId} value={`libre:${unit.itemId}`}>
+                              {unit.name} ({fmt(unit.lengthIn)}″ × {fmt(unit.widthIn)}″)
+                            </option>
+                          ))}
+                      </optgroup>
+                    )}
                   </select>
                   <button
                     type="button"
