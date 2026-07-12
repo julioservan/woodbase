@@ -2,7 +2,8 @@ import Link from "next/link";
 import { and, asc, desc, eq, ilike, or } from "drizzle-orm";
 import { MapPin, Plus } from "lucide-react";
 import { getDb } from "@/lib/db";
-import { woodItems } from "@/lib/db/schema";
+import { projects, woodItems } from "@/lib/db/schema";
+import { normalizeLayout } from "@/lib/workbench";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { InventoryFilters } from "@/components/inventory-filters";
@@ -64,7 +65,7 @@ export default async function HomePage({
           ? [asc(woodItems.name)]
           : [desc(woodItems.createdAt)];
 
-  const [items, speciesRows] = await Promise.all([
+  const [items, speciesRows, projectRows] = await Promise.all([
     db
       .select()
       .from(woodItems)
@@ -74,7 +75,30 @@ export default async function HomePage({
       .selectDistinct({ species: woodItems.species })
       .from(woodItems)
       .orderBy(woodItems.species),
+    db
+      .select({
+        name: projects.name,
+        workbench: projects.workbench,
+      })
+      .from(projects),
   ]);
+
+  // Tablas "en uso": están sobre la Mesa de trabajo de algún proyecto
+  // (sueltas o dentro de un panel encolado). itemId → nombres de proyecto.
+  const inUseBy = new Map<string, string[]>();
+  for (const p of projectRows) {
+    const layout = normalizeLayout(p.workbench);
+    const itemIds = new Set<string>();
+    for (const b of layout.boards) itemIds.add(b.itemId);
+    for (const panel of layout.panels) {
+      for (const unitKey of panel.unitKeys) itemIds.add(unitKey.split("#")[0]);
+    }
+    for (const itemId of itemIds) {
+      const names = inUseBy.get(itemId) ?? [];
+      if (!names.includes(p.name)) names.push(p.name);
+      inUseBy.set(itemId, names);
+    }
+  }
 
   const allSpecies = speciesRows
     .map((r) => r.species)
@@ -136,6 +160,7 @@ export default async function HomePage({
         ) : (
           <div className="grid grid-cols-2 gap-x-3 gap-y-9 sm:grid-cols-3 sm:gap-x-5 lg:grid-cols-4">
             {items.map((item, index) => {
+              const usedBy = inUseBy.get(item.id);
               const dimensions = formatDimensions(
                 item.lengthIn,
                 item.widthIn,
@@ -276,6 +301,17 @@ export default async function HomePage({
                     {dimensions && (
                       <p className="text-xs tabular-nums text-muted-foreground/80">
                         {dimensions}
+                      </p>
+                    )}
+                    {/* Sello de taller: la tabla está sobre la mesa de
+                        trabajo de un proyecto */}
+                    {usedBy && usedBy.length > 0 && (
+                      <p
+                        title={`En uso en: ${usedBy.join(", ")}`}
+                        className="!mt-2 inline-block max-w-full -rotate-[2deg] truncate rounded-[3px] border-2 border-[#a4661f]/60 px-1.5 py-px text-[9px] font-black uppercase tracking-[0.1em] text-[#a4661f]/85"
+                      >
+                        En uso · {usedBy[0]}
+                        {usedBy.length > 1 && ` +${usedBy.length - 1}`}
                       </p>
                     )}
                   </article>
