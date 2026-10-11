@@ -11,7 +11,7 @@ export function Header() {
             alt=""
             className="h-9 w-9 rounded-[9px] shadow-[0_2px_4px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.2)] ring-1 ring-black/40 transition-transform group-hover:rotate-6"
           />
-          <span className="text-engraved font-display text-xl font-semibold tracking-tight">
+          <span className="text-engraved font-display text-xl font-semibold tracking-tight max-[420px]:hidden">
             Woodbase
           </span>
         </Link>
@@ -27,6 +27,12 @@ export function Header() {
             className="text-engraved text-walnut-foreground/80 transition-colors hover:text-walnut-foreground"
           >
             Proyectos
+          </Link>
+          <Link
+            href="/compras"
+            className="text-engraved text-walnut-foreground/80 transition-colors hover:text-walnut-foreground"
+          >
+            Compras
           </Link>
         </nav>
       </div>

@@ -11,6 +11,7 @@ Inventario personal de madera para el taller. Registra tablones y piezas con su 
 - 📷 Subida de foto (o captura con la cámara del móvil) a Vercel Blob
 - ✨ Identificación de especie por IA: envía la foto a Claude y pre-rellena el campo especie con confianza y alternativas (siempre orientativo — tú confirmas)
 - 🔍 Vista de detalle con foto grande
+- 🧾 Maderas compradas (`/compras`): historial de pedidos a Cook Woods con fotos, precios, envíos y gasto total. Los datos viven en `src/lib/purchases.ts` y las fotos en `public/compras/`
 - 🔒 Acceso protegido con una única contraseña (`APP_PASSWORD`)
 
 ## Puesta en marcha
