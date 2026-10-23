@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { isValidSession, SESSION_COOKIE, sessionToken } from "@/lib/auth";
+import { safeNext } from "@/lib/session";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -9,12 +11,13 @@ export const dynamic = "force-dynamic";
 async function login(formData: FormData) {
   "use server";
   const password = formData.get("password");
+  const next = safeNext(formData.get("next"));
   if (
     typeof password !== "string" ||
     !process.env.APP_PASSWORD ||
     password !== process.env.APP_PASSWORD
   ) {
-    redirect("/login?error=1");
+    redirect(`/login?error=1&next=${encodeURIComponent(next)}`);
   }
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, await sessionToken(), {
@@ -24,19 +27,20 @@ async function login(formData: FormData) {
     path: "/",
     maxAge: 60 * 60 * 24 * 90, // 90 días
   });
-  redirect("/");
+  redirect(next);
 }
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; next?: string }>;
 }) {
+  const { error, next: rawNext } = await searchParams;
+  const next = safeNext(rawNext);
   const cookieStore = await cookies();
   if (await isValidSession(cookieStore.get(SESSION_COOKIE)?.value)) {
-    redirect("/");
+    redirect(next);
   }
-  const { error } = await searchParams;
 
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-9 bg-planks-dark p-6 text-walnut-foreground">
@@ -65,6 +69,7 @@ export default async function LoginPage({
           aria-hidden
           className="pointer-events-none absolute inset-2.5 rounded-xl border-2 border-dashed border-[#e8cfa4]/35"
         />
+        <input type="hidden" name="next" value={next} />
         <div className="space-y-2">
           <label
             htmlFor="password"
@@ -94,6 +99,12 @@ export default async function LoginPage({
           Entrar al taller
         </Button>
       </form>
+      <Link
+        href={next}
+        className="text-sm text-walnut-foreground/60 underline-offset-2 [text-shadow:0_1px_2px_rgba(0,0,0,0.6)] hover:text-walnut-foreground hover:underline"
+      >
+        Volver sin entrar
+      </Link>
     </main>
   );
 }

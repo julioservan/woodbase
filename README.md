@@ -12,7 +12,7 @@ Inventario personal de madera para el taller. Registra tablones y piezas con su 
 - ✨ Identificación de especie por IA: envía la foto a Claude y pre-rellena el campo especie con confianza y alternativas (siempre orientativo — tú confirmas)
 - 🔍 Vista de detalle con foto grande
 - 🧾 Maderas compradas (`/compras`): historial de pedidos a Cook Woods con fotos, precios, envíos y gasto total. Los datos viven en `src/lib/purchases.ts` y las fotos en `public/compras/`
-- 🔒 Acceso protegido con una única contraseña (`APP_PASSWORD`)
+- 🔓 Lectura libre, edición con contraseña (`APP_PASSWORD`): cualquiera puede ver el inventario, los proyectos y las compras; añadir, editar, borrar, subir fotos o usar la IA exige entrar
 
 ## Puesta en marcha
 
@@ -59,7 +59,7 @@ En producción, al conectar el store Blob al proyecto de Vercel, la variable se 
 
 ### 7. Elige tu contraseña
 
-Define `APP_PASSWORD` en `.env` con la contraseña que usarás para entrar. Toda la app queda detrás de un middleware que exige una cookie de sesión válida.
+Define `APP_PASSWORD` en `.env` con la contraseña que usarás para entrar. Las páginas se pueden ver sin sesión; el middleware exige una cookie de sesión válida para cualquier escritura (server actions y `/api/*`, que van por POST) y para las páginas de edición (`/items/new`, `…/edit`, `/projects/new`, la Mesa de trabajo).
 
 ### 8. Arranca en local
 
@@ -95,7 +95,8 @@ src/
     db/schema.ts             # Schema Drizzle (wood_items)
     db/index.ts              # Cliente Neon + Drizzle
     auth.ts                  # Sesión firmada derivada de APP_PASSWORD
-  middleware.ts              # Protege toda la app con la cookie de sesión
+    session.ts               # canEdit(): muestra u oculta los controles de edición
+  middleware.ts              # Exige sesión para escribir y para las páginas de edición
 drizzle/                     # Migraciones SQL generadas
 scripts/seed.ts              # Datos de ejemplo
 ```

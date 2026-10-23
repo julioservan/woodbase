@@ -17,6 +17,7 @@ import { BoardPicker } from "@/components/board-picker";
 import { PartSpeciesSelect } from "@/components/part-species-select";
 import { StepImport } from "@/components/step-import";
 import { WorkshopAdvice } from "@/components/workshop-advice";
+import { canEdit } from "@/lib/session";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +42,7 @@ export default async function ProjectDetailPage({
 }) {
   const { id } = await params;
   const db = getDb();
+  const editable = await canEdit();
 
   const [project] = await db
     .select()
@@ -115,22 +117,26 @@ export default async function ProjectDetailPage({
                 <FileText className="h-3.5 w-3.5" /> PDF del taller
               </a>
             )}
-            <Link
-              href={`/projects/${project.id}/edit`}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#b09468] bg-gradient-to-b from-[#fffdf5] to-[#efe4c9] px-4 text-sm font-semibold text-foreground [text-shadow:0_1px_0_rgba(255,255,255,0.7)] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_2px_rgba(43,30,19,0.3)] transition-all hover:to-[#f6eeda] active:shadow-[inset_0_2px_5px_rgba(90,70,40,0.3)]"
-            >
-              <Pencil className="h-3.5 w-3.5" /> Editar
-            </Link>
-            <form action={deleteThisProject}>
-              <button
-                type="submit"
-                aria-label="Borrar proyecto"
-                title="Borrar proyecto"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#8a3a2c] bg-gradient-to-b from-[#c4573f] to-[#a83c2a] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_1px_2px_rgba(43,30,19,0.3)] transition-all hover:from-[#cd6048] active:shadow-[inset_0_2px_5px_rgba(60,15,8,0.5)]"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </form>
+            {editable && (
+              <>
+                <Link
+                  href={`/projects/${project.id}/edit`}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#b09468] bg-gradient-to-b from-[#fffdf5] to-[#efe4c9] px-4 text-sm font-semibold text-foreground [text-shadow:0_1px_0_rgba(255,255,255,0.7)] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_2px_rgba(43,30,19,0.3)] transition-all hover:to-[#f6eeda] active:shadow-[inset_0_2px_5px_rgba(90,70,40,0.3)]"
+                >
+                  <Pencil className="h-3.5 w-3.5" /> Editar
+                </Link>
+                <form action={deleteThisProject}>
+                  <button
+                    type="submit"
+                    aria-label="Borrar proyecto"
+                    title="Borrar proyecto"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#8a3a2c] bg-gradient-to-b from-[#c4573f] to-[#a83c2a] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_1px_2px_rgba(43,30,19,0.3)] transition-all hover:from-[#cd6048] active:shadow-[inset_0_2px_5px_rgba(60,15,8,0.5)]"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </form>
+              </>
+            )}
           </div>
         </div>
 
@@ -174,21 +180,31 @@ export default async function ProjectDetailPage({
                         {formatInches(part.thicknessIn)}″
                       </p>
                     </div>
-                    <PartSpeciesSelect
-                      projectId={project.id}
-                      partId={part.id}
-                      species={part.species}
-                      inventorySpecies={inventorySpecies}
-                    />
-                    <form action={removePart}>
-                      <button
-                        type="submit"
-                        aria-label={`Quitar ${part.name}`}
-                        className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </form>
+                    {editable ? (
+                      <PartSpeciesSelect
+                        projectId={project.id}
+                        partId={part.id}
+                        species={part.species}
+                        inventorySpecies={inventorySpecies}
+                      />
+                    ) : (
+                      part.species && (
+                        <span className="max-w-[8.5rem] shrink-0 truncate text-xs text-muted-foreground">
+                          {part.species}
+                        </span>
+                      )
+                    )}
+                    {editable && (
+                      <form action={removePart}>
+                        <button
+                          type="submit"
+                          aria-label={`Quitar ${part.name}`}
+                          className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </form>
+                    )}
                   </li>
                 );
               })}
@@ -197,54 +213,57 @@ export default async function ProjectDetailPage({
 
           {/* Alta e importación, plegadas para no ocupar: se abren al tocar
               (y quedan abiertas si el despiece está vacío). */}
-          <details
-            open={parts.length === 0}
-            className="group mt-2 border-t border-[#c9b28c]/60 pt-3"
-          >
-            <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-md border border-dashed border-[#a5865a]/70 px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-[#a5865a] hover:text-foreground [&::-webkit-details-marker]:hidden">
-              <Plus className="h-3.5 w-3.5" /> Añadir piezas
-              <span className="text-muted-foreground/60">
-                (a mano o desde STEP)
-              </span>
-            </summary>
-            <form
-              action={addPartToProject}
-              className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-[1fr_4.5rem_5.5rem_5.5rem_5.5rem_auto]"
+          {editable && (
+            <details
+              open={parts.length === 0}
+              className="group mt-2 border-t border-[#c9b28c]/60 pt-3"
             >
-              <Input
-                name="name"
-                required
-                placeholder="Pieza (pata, tapa...)"
-                aria-label="Nombre de la pieza"
-                className="col-span-2 sm:col-span-1"
-              />
-              <Input
-                name="quantity"
-                type="number"
-                min="1"
-                step="1"
-                defaultValue="1"
-                aria-label="Cantidad"
-              />
-              <Input name="lengthIn" required placeholder="Largo″" aria-label="Largo en pulgadas" />
-              <Input name="widthIn" required placeholder="Ancho″" aria-label="Ancho en pulgadas" />
-              <Input name="thicknessIn" required placeholder="Grosor″" aria-label="Grosor en pulgadas" />
-              <Button type="submit" size="sm" className="col-span-2 h-10 rounded-lg sm:col-span-1 sm:h-9">
-                <Plus className="h-4 w-4" /> Añadir
-              </Button>
-            </form>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Medidas en pulgadas; acepta fracciones (<code>3/4</code>,{" "}
-              <code>1 1/2</code>...).
-            </p>
-            <div className="mt-4">
-              <StepImport projectId={project.id} />
-            </div>
-          </details>
+              <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-md border border-dashed border-[#a5865a]/70 px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-[#a5865a] hover:text-foreground [&::-webkit-details-marker]:hidden">
+                <Plus className="h-3.5 w-3.5" /> Añadir piezas
+                <span className="text-muted-foreground/60">
+                  (a mano o desde STEP)
+                </span>
+              </summary>
+              <form
+                action={addPartToProject}
+                className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-[1fr_4.5rem_5.5rem_5.5rem_5.5rem_auto]"
+              >
+                <Input
+                  name="name"
+                  required
+                  placeholder="Pieza (pata, tapa...)"
+                  aria-label="Nombre de la pieza"
+                  className="col-span-2 sm:col-span-1"
+                />
+                <Input
+                  name="quantity"
+                  type="number"
+                  min="1"
+                  step="1"
+                  defaultValue="1"
+                  aria-label="Cantidad"
+                />
+                <Input name="lengthIn" required placeholder="Largo″" aria-label="Largo en pulgadas" />
+                <Input name="widthIn" required placeholder="Ancho″" aria-label="Ancho en pulgadas" />
+                <Input name="thicknessIn" required placeholder="Grosor″" aria-label="Grosor en pulgadas" />
+                <Button type="submit" size="sm" className="col-span-2 h-10 rounded-lg sm:col-span-1 sm:h-9">
+                  <Plus className="h-4 w-4" /> Añadir
+                </Button>
+              </form>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Medidas en pulgadas; acepta fracciones (<code>3/4</code>,{" "}
+                <code>1 1/2</code>...).
+              </p>
+              <div className="mt-4">
+                <StepImport projectId={project.id} />
+              </div>
+            </details>
+          )}
         </section>
 
-        {/* Optimizador */}
-        {parts.length > 0 && (
+        {/* Optimizador: todo son herramientas de edición (elegir tablas,
+            mesa de trabajo, consejos con IA), así que solo con sesión */}
+        {editable && parts.length > 0 && (
           <section className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-letterpress font-display text-2xl font-semibold tracking-tight">

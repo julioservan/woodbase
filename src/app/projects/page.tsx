@@ -4,6 +4,7 @@ import { Hammer, Plus } from "lucide-react";
 import { getDb } from "@/lib/db";
 import { projectParts, projects } from "@/lib/db/schema";
 import { Footer } from "@/components/footer";
+import { canEdit } from "@/lib/session";
 import { PROJECT_STATUS_LABELS } from "@/lib/utils";
 import { Header } from "@/components/header";
 
@@ -18,6 +19,7 @@ const STATUS_STAMP: Record<string, string> = {
 
 export default async function ProjectsPage() {
   const db = getDb();
+  const editable = await canEdit();
   const rows = await db
     .select({
       project: projects,
@@ -36,24 +38,28 @@ export default async function ProjectsPage() {
           <h1 className="text-letterpress font-display text-4xl font-semibold tracking-tight">
             Proyectos
           </h1>
-          <Link
-            href="/projects/new"
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#8a5a24] bg-gradient-to-b from-[#f0bd6b] to-[#cf8f33] px-4 text-sm font-semibold text-[#3b2712] [text-shadow:0_1px_0_rgba(255,255,255,0.4)] shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_2px_4px_rgba(0,0,0,0.45)] transition-all hover:from-[#f4c67c] hover:to-[#d6993f] active:shadow-[inset_0_2px_5px_rgba(70,45,15,0.45)]"
-          >
-            <Plus className="h-4 w-4" /> Nuevo proyecto
-          </Link>
+          {editable && (
+            <Link
+              href="/projects/new"
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#8a5a24] bg-gradient-to-b from-[#f0bd6b] to-[#cf8f33] px-4 text-sm font-semibold text-[#3b2712] [text-shadow:0_1px_0_rgba(255,255,255,0.4)] shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_2px_4px_rgba(0,0,0,0.45)] transition-all hover:from-[#f4c67c] hover:to-[#d6993f] active:shadow-[inset_0_2px_5px_rgba(70,45,15,0.45)]"
+            >
+              <Plus className="h-4 w-4" /> Nuevo proyecto
+            </Link>
+          )}
         </div>
 
         {rows.length === 0 ? (
           <div className="panel-paper flex flex-col items-center gap-3 rounded-2xl py-20 text-center text-muted-foreground">
             <Hammer className="h-10 w-10 opacity-40" />
             <p>Aún no hay proyectos.</p>
-            <Link
-              href="/projects/new"
-              className="font-medium text-primary underline-offset-2 hover:underline"
-            >
-              Empieza el primero
-            </Link>
+            {editable && (
+              <Link
+                href="/projects/new"
+                className="font-medium text-primary underline-offset-2 hover:underline"
+              >
+                Empieza el primero
+              </Link>
+            )}
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

@@ -5,6 +5,7 @@ import { getDb } from "@/lib/db";
 import { projects, woodItems } from "@/lib/db/schema";
 import { normalizeLayout } from "@/lib/workbench";
 import { Footer } from "@/components/footer";
+import { canEdit } from "@/lib/session";
 import { Header } from "@/components/header";
 import { InventoryFilters } from "@/components/inventory-filters";
 import { WoodPhoto } from "@/components/wood-photo";
@@ -34,6 +35,7 @@ export default async function HomePage({
 }) {
   const { q, species, cut, scrap, sort } = await searchParams;
   const db = getDb();
+  const editable = await canEdit();
 
   const conditions = [];
   if (q) {
@@ -121,12 +123,14 @@ export default async function HomePage({
               </p>
             )}
           </div>
-          <Link
-            href="/items/new"
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#8a5a24] bg-gradient-to-b from-[#f0bd6b] to-[#cf8f33] px-4 text-sm font-semibold text-[#3b2712] [text-shadow:0_1px_0_rgba(255,255,255,0.4)] shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_2px_4px_rgba(0,0,0,0.45)] transition-all hover:from-[#f4c67c] hover:to-[#d6993f] active:shadow-[inset_0_2px_5px_rgba(70,45,15,0.45)]"
-          >
-            <Plus className="h-4 w-4" /> Añadir pieza
-          </Link>
+          {editable && (
+            <Link
+              href="/items/new"
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#8a5a24] bg-gradient-to-b from-[#f0bd6b] to-[#cf8f33] px-4 text-sm font-semibold text-[#3b2712] [text-shadow:0_1px_0_rgba(255,255,255,0.4)] shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_2px_4px_rgba(0,0,0,0.45)] transition-all hover:from-[#f4c67c] hover:to-[#d6993f] active:shadow-[inset_0_2px_5px_rgba(70,45,15,0.45)]"
+            >
+              <Plus className="h-4 w-4" /> Añadir pieza
+            </Link>
+          )}
         </div>
 
         {/* Buscador y filtros: se aplican al cambiar, sin botón */}
@@ -148,12 +152,14 @@ export default async function HomePage({
             ) : (
               <>
                 <p>Tu inventario está vacío.</p>
-                <Link
-                  href="/items/new"
-                  className="font-medium text-primary underline-offset-2 hover:underline"
-                >
-                  Añade tu primera pieza de madera
-                </Link>
+                {editable && (
+                  <Link
+                    href="/items/new"
+                    className="font-medium text-primary underline-offset-2 hover:underline"
+                  >
+                    Añade tu primera pieza de madera
+                  </Link>
+                )}
               </>
             )}
           </div>
