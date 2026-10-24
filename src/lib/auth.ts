@@ -1,17 +1,23 @@
 export const SESSION_COOKIE = "woodbase_session";
 
-// El valor de la cookie de sesión es un HMAC-SHA256 derivado de APP_PASSWORD.
-// Al derivarse de la variable de entorno, cambiar la contraseña invalida
-// todas las sesiones. Usa Web Crypto para funcionar también en middleware
-// (runtime edge).
-export async function sessionToken(): Promise<string> {
-  const password = process.env.APP_PASSWORD;
-  if (!password) {
-    throw new Error("APP_PASSWORD no está definida");
+// Secreto con el que se firman la sesión y los códigos de acceso.
+// AUTH_SECRET; si no está, se reutiliza APP_PASSWORD (de cuando se entraba
+// con contraseña) para que las sesiones abiertas sigan valiendo.
+export function authSecret(): string {
+  const secret = process.env.AUTH_SECRET || process.env.APP_PASSWORD;
+  if (!secret) {
+    throw new Error("AUTH_SECRET no está definida");
   }
+  return secret;
+}
+
+// El valor de la cookie de sesión es un HMAC-SHA256 derivado del secreto.
+// Cambiar el secreto invalida todas las sesiones. Usa Web Crypto para
+// funcionar también en middleware (runtime edge).
+export async function sessionToken(): Promise<string> {
   const key = await crypto.subtle.importKey(
     "raw",
-    new TextEncoder().encode(password),
+    new TextEncoder().encode(authSecret()),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"],

@@ -8,6 +8,7 @@ import { deleteItem, duplicateItem } from "@/app/items/actions";
 import { Header } from "@/components/header";
 import { WoodPhoto } from "@/components/wood-photo";
 import { DeleteItemButton } from "@/components/delete-item-button";
+import { canEdit } from "@/lib/session";
 import { Badge, CutBadge } from "@/components/ui/badge";
 import {
   boardFeet,
@@ -51,6 +52,7 @@ export default async function ItemDetailPage({
     .limit(1);
 
   if (!item) notFound();
+  const editable = await canEdit();
 
   const dimensions = formatDimensions(
     item.lengthIn,
@@ -222,23 +224,25 @@ export default async function ItemDetailPage({
               </div>
             )}
 
-            <div className="flex gap-2 pt-1">
-              <Link
-                href={`/items/${item.id}/edit`}
-                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#b09468] bg-gradient-to-b from-[#fffdf5] to-[#efe4c9] px-4 text-sm font-semibold text-foreground [text-shadow:0_1px_0_rgba(255,255,255,0.7)] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_2px_rgba(43,30,19,0.3)] transition-all hover:to-[#f6eeda] active:shadow-[inset_0_2px_5px_rgba(90,70,40,0.3)]"
-              >
-                <Pencil className="h-3.5 w-3.5" /> Editar
-              </Link>
-              <form action={duplicateThisItem}>
-                <button
-                  type="submit"
+            {editable && (
+              <div className="flex gap-2 pt-1">
+                <Link
+                  href={`/items/${item.id}/edit`}
                   className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#b09468] bg-gradient-to-b from-[#fffdf5] to-[#efe4c9] px-4 text-sm font-semibold text-foreground [text-shadow:0_1px_0_rgba(255,255,255,0.7)] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_2px_rgba(43,30,19,0.3)] transition-all hover:to-[#f6eeda] active:shadow-[inset_0_2px_5px_rgba(90,70,40,0.3)]"
                 >
-                  <Copy className="h-3.5 w-3.5" /> Duplicar
-                </button>
-              </form>
-              <DeleteItemButton action={deleteThisItem} />
-            </div>
+                  <Pencil className="h-3.5 w-3.5" /> Editar
+                </Link>
+                <form action={duplicateThisItem}>
+                  <button
+                    type="submit"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#b09468] bg-gradient-to-b from-[#fffdf5] to-[#efe4c9] px-4 text-sm font-semibold text-foreground [text-shadow:0_1px_0_rgba(255,255,255,0.7)] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_2px_rgba(43,30,19,0.3)] transition-all hover:to-[#f6eeda] active:shadow-[inset_0_2px_5px_rgba(90,70,40,0.3)]"
+                  >
+                    <Copy className="h-3.5 w-3.5" /> Duplicar
+                  </button>
+                </form>
+                <DeleteItemButton action={deleteThisItem} />
+              </div>
+            )}
           </div>
         </div>
       </main>

@@ -1,5 +1,6 @@
 import {
   boolean,
+  integer,
   jsonb,
   pgEnum,
   pgTable,
@@ -102,3 +103,14 @@ export const projectParts = pgTable("project_parts", {
 
 export type Project = typeof projects.$inferSelect;
 export type ProjectPart = typeof projectParts.$inferSelect;
+
+// ---------- Acceso por código de email ----------
+
+// Un código pendiente por email: se guarda su hash, nunca el código.
+export const loginCodes = pgTable("login_codes", {
+  email: text("email").primaryKey(),
+  codeHash: text("code_hash").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  attempts: integer("attempts").notNull().default(0),
+  sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
+});
