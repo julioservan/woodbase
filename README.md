@@ -12,7 +12,7 @@ Inventario personal de madera para el taller. Registra tablones y piezas con su 
 - ✨ Identificación de especie por IA: envía la foto a Claude y pre-rellena el campo especie con confianza y alternativas (siempre orientativo — tú confirmas)
 - 🔍 Vista de detalle con foto grande
 - 🧾 Maderas compradas (`/compras`): historial de pedidos a Cook Woods con fotos, precios, envíos y gasto total. Los datos viven en `src/lib/purchases.ts` y las fotos en `public/compras/`
-- 🔓 Lectura libre, edición con contraseña (`APP_PASSWORD`): cualquiera puede ver el inventario, los proyectos y las compras; añadir, editar, borrar, subir fotos o usar la IA exige entrar
+- 🔓 Lectura libre, edición con código por email: cualquiera puede ver el inventario, los proyectos y las compras; añadir, editar, borrar, subir fotos o usar la IA exige entrar con un código de 6 cifras que llega al email (solo a los de `ALLOWED_EMAILS`)
 
 ## Puesta en marcha
 
@@ -57,9 +57,15 @@ En producción, al conectar el store Blob al proyecto de Vercel, la variable se 
 1. Crea una key en [console.anthropic.com](https://console.anthropic.com) → API Keys.
 2. Ponla en `.env` como `ANTHROPIC_API_KEY`. La identificación usa un modelo con visión (`claude-opus-4-8`); la llamada se hace siempre desde el servidor.
 
-### 7. Elige tu contraseña
+### 7. Configura el acceso por email
 
-Define `APP_PASSWORD` en `.env` con la contraseña que usarás para entrar. Las páginas se pueden ver sin sesión; el middleware exige una cookie de sesión válida para cualquier escritura (server actions y `/api/*`, que van por POST) y para las páginas de edición (`/items/new`, `…/edit`, `/projects/new`, la Mesa de trabajo).
+Para entrar se pide un email y llega un código de 6 cifras (válido 10 minutos, 5 intentos, uno nuevo como mucho por minuto). Define en `.env`:
+
+- `ALLOWED_EMAILS`: los emails que pueden entrar, separados por comas.
+- `RESEND_API_KEY`: crea una cuenta en [resend.com](https://resend.com) y una API key. Con el remitente por defecto (`onboarding@resend.dev`) Resend solo entrega al email con el que abriste la cuenta; para otros destinatarios, verifica un dominio y pon `EMAIL_FROM`.
+- `AUTH_SECRET`: un secreto largo y aleatorio (`openssl rand -hex 32`). Si falta, se usa `APP_PASSWORD` como secreto.
+
+La tabla `login_codes` se crea sola la primera vez que se pide un código (también está en `drizzle/0009_login_codes.sql`). Las páginas se pueden ver sin sesión; el middleware exige una cookie de sesión válida para cualquier escritura (server actions y `/api/*`, que van por POST) y para las páginas de edición (`/items/new`, `…/edit`, `/projects/new`, la Mesa de trabajo).
 
 ### 8. Arranca en local
 
@@ -72,7 +78,7 @@ Abre [http://localhost:3000](http://localhost:3000), introduce tu contraseña y 
 ## Despliegue en Vercel
 
 1. Importa el repositorio en Vercel.
-2. Configura las 4 variables de entorno (`DATABASE_URL`, `BLOB_READ_WRITE_TOKEN`, `ANTHROPIC_API_KEY`, `APP_PASSWORD`) en Settings → Environment Variables (el token de Blob se añade solo al conectar el store).
+2. Configura las variables de entorno (`DATABASE_URL`, `BLOB_READ_WRITE_TOKEN`, `ANTHROPIC_API_KEY`, `AUTH_SECRET`, `ALLOWED_EMAILS`, `RESEND_API_KEY`) en Settings → Environment Variables (el token de Blob se añade solo al conectar el store).
 3. Despliega. Las migraciones no se ejecutan automáticamente: lánzalas una vez desde tu máquina con `npm run db:migrate` apuntando a la `DATABASE_URL` de producción.
 
 ## Estructura del proyecto
@@ -81,7 +87,7 @@ Abre [http://localhost:3000](http://localhost:3000), introduce tu contraseña y 
 src/
   app/
     page.tsx                 # Listado + buscador + filtros
-    login/page.tsx           # Login con APP_PASSWORD
+    login/page.tsx           # Login en dos pasos: email → código
     items/
       actions.ts             # Server actions: crear / editar / borrar
       new/page.tsx           # Alta de pieza
@@ -94,7 +100,9 @@ src/
   lib/
     db/schema.ts             # Schema Drizzle (wood_items)
     db/index.ts              # Cliente Neon + Drizzle
-    auth.ts                  # Sesión firmada derivada de APP_PASSWORD
+    auth.ts                  # Sesión firmada con AUTH_SECRET
+    login-codes.ts           # Códigos de acceso: generar, guardar (hash) y verificar
+    email.ts                 # Envío del código con Resend
     session.ts               # canEdit(): muestra u oculta los controles de edición
   middleware.ts              # Exige sesión para escribir y para las páginas de edición
 drizzle/                     # Migraciones SQL generadas
