@@ -2,11 +2,13 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { isValidSession, SESSION_COOKIE, sessionToken } from "@/lib/auth";
-import { sendLoginCode } from "@/lib/email";
+import { emailConfigured, sendLoginCode } from "@/lib/email";
 import {
+  allowedEmails,
   isAllowedEmail,
   issueLoginCode,
   normalizeEmail,
+  revokeLoginCode,
   verifyLoginCode,
 } from "@/lib/login-codes";
 import { safeNext } from "@/lib/session";
@@ -32,10 +34,27 @@ async function requestCode(formData: FormData) {
   }
   const email = normalizeEmail(raw);
 
+  // Sin ALLOWED_EMAILS o sin RESEND_API_KEY nadie puede entrar: mejor decirlo
+  // claro (y dejarlo en los logs) que fingir que el email ha salido. En Vercel
+  // las variables nuevas solo se aplican tras volver a desplegar.
+  const missing = [
+    allowedEmails().length === 0 && "ALLOWED_EMAILS",
+    !emailConfigured() && "RESEND_API_KEY",
+  ].filter(Boolean);
+  if (missing.length > 0) {
+    console.error(
+      `Login por email sin configurar: falta ${missing.join(" y ")} en el entorno`,
+    );
+    redirect(loginUrl({ error: "config", next }));
+  }
+
   // A un email no autorizado no se le manda nada, pero la respuesta es la
-  // misma: así el login no revela qué emails pueden entrar.
+  // misma: así el login no revela qué emails pueden entrar. En los logs del
+  // servidor sí queda, para saber por qué no llegó.
   let notice = "sent";
-  if (isAllowedEmail(email)) {
+  if (!isAllowedEmail(email)) {
+    console.warn(`Código pedido para ${email}, que no está en ALLOWED_EMAILS`);
+  } else {
     const result = await issueLoginCode(email);
     if (result.status === "too_soon") {
       notice = "wait";
@@ -43,7 +62,9 @@ async function requestCode(formData: FormData) {
       try {
         await sendLoginCode(email, result.code);
       } catch (err) {
-        console.error("No se pudo enviar el código", err);
+        console.error(`No se pudo enviar el código a ${email}`, err);
+        // Sin el email, el código no vale: se borra para poder pedir otro ya.
+        await revokeLoginCode(email).catch(() => {});
         redirect(loginUrl({ error: "send", next }));
       }
     }
@@ -86,6 +107,8 @@ async function verifyCode(formData: FormData) {
 const ERRORS: Record<string, string> = {
   email: "Escribe un email válido.",
   send: "No se pudo enviar el código. Inténtalo de nuevo en un momento.",
+  config:
+    "El acceso por email no está configurado en el servidor: faltan ALLOWED_EMAILS o RESEND_API_KEY (y hay que volver a desplegar tras añadirlas).",
   code: "Código incorrecto o caducado. Revísalo o pide otro.",
 };
 

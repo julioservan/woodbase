@@ -65,6 +65,8 @@ Para entrar se pide un email y llega un código de 6 cifras (válido 10 minutos,
 - `RESEND_API_KEY`: crea una cuenta en [resend.com](https://resend.com) y una API key. Con el remitente por defecto (`onboarding@resend.dev`) Resend solo entrega al email con el que abriste la cuenta; para otros destinatarios, verifica un dominio y pon `EMAIL_FROM`.
 - `AUTH_SECRET`: un secreto largo y aleatorio (`openssl rand -hex 32`). Si falta, se usa `APP_PASSWORD` como secreto.
 
+Si el código no llega: la pantalla responde igual para cualquier email (para no revelar cuáles pueden entrar), pero en los logs de Vercel queda el motivo (`Código pedido para … que no está en ALLOWED_EMAILS`, el error de Resend, o `Código de acceso enviado a …` con su id). Si faltan `ALLOWED_EMAILS` o `RESEND_API_KEY`, el login lo dice directamente. En Vercel, una variable nueva o cambiada solo se aplica tras volver a desplegar (Deployments → ⋯ → Redeploy).
+
 La tabla `login_codes` se crea sola la primera vez que se pide un código (también está en `drizzle/0009_login_codes.sql`). Las páginas se pueden ver sin sesión; el middleware exige una cookie de sesión válida para cualquier escritura (server actions y `/api/*`, que van por POST) y para las páginas de edición (`/items/new`, `…/edit`, `/projects/new`, la Mesa de trabajo).
 
 ### 8. Arranca en local
