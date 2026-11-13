@@ -32,4 +32,13 @@ export async function sendLoginCode(to: string, code: string): Promise<void> {
   if (!res.ok) {
     throw new Error(`Resend respondió ${res.status}: ${await res.text()}`);
   }
+  // Queda en los logs de Vercel para poder seguir el envío en Resend.
+  const { id } = (await res.json().catch(() => ({}))) as { id?: string };
+  console.log(`Código de acceso enviado a ${to} (Resend id ${id ?? "?"})`);
+}
+
+// ¿Está todo lo necesario para mandar códigos? Sin esto el login no puede
+// funcionar y conviene decirlo en vez de fingir que el email ha salido.
+export function emailConfigured(): boolean {
+  return !!process.env.RESEND_API_KEY;
 }

@@ -16,12 +16,15 @@ export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
-export function isAllowedEmail(email: string): boolean {
-  const allowed = (process.env.ALLOWED_EMAILS ?? "")
-    .split(",")
+export function allowedEmails(): string[] {
+  return (process.env.ALLOWED_EMAILS ?? "")
+    .split(/[,;\s]+/)
     .map(normalizeEmail)
     .filter(Boolean);
-  return allowed.includes(normalizeEmail(email));
+}
+
+export function isAllowedEmail(email: string): boolean {
+  return allowedEmails().includes(normalizeEmail(email));
 }
 
 function hashCode(email: string, code: string): string {
@@ -75,6 +78,15 @@ export async function issueLoginCode(rawEmail: string): Promise<IssueResult> {
     .values({ email, ...row })
     .onConflictDoUpdate({ target: loginCodes.email, set: row });
   return { status: "issued", code };
+}
+
+// Si el email con el código no se pudo enviar, el código recién guardado no
+// sirve de nada: se borra para que se pueda pedir otro al momento, en lugar
+// de responder «espera un minuto» por un envío que nunca salió.
+export async function revokeLoginCode(rawEmail: string): Promise<void> {
+  const email = normalizeEmail(rawEmail);
+  await ensureTable();
+  await getDb().delete(loginCodes).where(eq(loginCodes.email, email));
 }
 
 // Comprueba el código. Un acierto lo consume; cada fallo cuenta un intento.
