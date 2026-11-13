@@ -59,6 +59,8 @@ En producción, al conectar el store Blob al proyecto de Vercel, la variable se 
 
 ### 7. Configura el acceso por email
 
+> **Ahora mismo el login está desactivado** (`AUTH_DISABLED = true` en `src/lib/auth.ts`): todo se ve y se edita sin código, porque en Vercel aún no están `ALLOWED_EMAILS` ni `RESEND_API_KEY`. Cuando las añadas, pon el interruptor a `false` y despliega.
+
 Para entrar se pide un email y llega un código de 6 cifras (válido 10 minutos, 5 intentos, uno nuevo como mucho por minuto). Define en `.env`:
 
 - `ALLOWED_EMAILS`: los emails que pueden entrar, separados por comas.
