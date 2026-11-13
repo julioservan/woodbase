@@ -40,12 +40,13 @@ async function requestCode(formData: FormData) {
   const missing = [
     allowedEmails().length === 0 && "ALLOWED_EMAILS",
     !emailConfigured() && "RESEND_API_KEY",
-  ].filter(Boolean);
+    !process.env.AUTH_SECRET && !process.env.APP_PASSWORD && "AUTH_SECRET",
+  ].filter((v): v is string => typeof v === "string");
   if (missing.length > 0) {
     console.error(
       `Login por email sin configurar: falta ${missing.join(" y ")} en el entorno`,
     );
-    redirect(loginUrl({ error: "config", next }));
+    redirect(loginUrl({ error: "config", missing: missing.join(","), next }));
   }
 
   // A un email no autorizado no se le manda nada, pero la respuesta es la
@@ -108,7 +109,7 @@ const ERRORS: Record<string, string> = {
   email: "Escribe un email válido.",
   send: "No se pudo enviar el código. Inténtalo de nuevo en un momento.",
   config:
-    "El acceso por email no está configurado en el servidor: faltan ALLOWED_EMAILS o RESEND_API_KEY (y hay que volver a desplegar tras añadirlas).",
+    "El acceso por email no está configurado en el servidor: falta {missing} (en Vercel, añádela en Settings → Environment Variables y vuelve a desplegar).",
   code: "Código incorrecto o caducado. Revísalo o pide otro.",
 };
 
@@ -121,12 +122,23 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<{
     error?: string;
+    missing?: string;
     notice?: string;
     step?: string;
     next?: string;
   }>;
 }) {
-  const { error, notice, step, next: rawNext } = await searchParams;
+  const { error, missing, notice, step, next: rawNext } = await searchParams;
+  // Nombres de variables de entorno que faltan (solo letras y guiones bajos:
+  // viene de la URL y se pinta en pantalla).
+  const missingVars = (missing ?? "")
+    .split(",")
+    .filter((v) => /^[A-Z_]+$/.test(v))
+    .join(" y ");
+  const errorText =
+    error && ERRORS[error]
+      ? ERRORS[error].replace("{missing}", missingVars || "configuración")
+      : undefined;
   const next = safeNext(rawNext);
   const cookieStore = await cookies();
   if (await isValidSession(cookieStore.get(SESSION_COOKIE)?.value)) {
@@ -210,9 +222,9 @@ export default async function LoginPage({
             />
           </div>
         )}
-        {error && ERRORS[error] && (
+        {errorText && (
           <p className="relative text-sm font-medium text-[#ffc9b3] [text-shadow:0_1px_1px_rgba(0,0,0,0.5)]">
-            {ERRORS[error]}
+            {errorText}
           </p>
         )}
         {codeStep && notice && NOTICES[notice] && (
