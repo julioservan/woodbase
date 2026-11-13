@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { isValidSession, SESSION_COOKIE } from "@/lib/auth";
+import { AUTH_DISABLED, isValidSession, SESSION_COOKIE } from "@/lib/auth";
 
 // Woodbase se puede ver sin contraseña; modificar exige sesión.
 // Toda escritura llega por POST (server actions y /api/*), así que basta con
@@ -14,6 +14,7 @@ const EDIT_PAGES = [
 ];
 
 export async function middleware(request: NextRequest) {
+  if (AUTH_DISABLED) return NextResponse.next();
   const { pathname, search } = request.nextUrl;
   const isRead = request.method === "GET" || request.method === "HEAD";
   const needsSession =

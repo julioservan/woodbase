@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { LogIn, LogOut } from "lucide-react";
 import { logout } from "@/app/auth-actions";
+import { AUTH_DISABLED } from "@/lib/auth";
 import { canEdit } from "@/lib/session";
 
 // Pie discreto: entrar / salir vive aquí en vez de ocupar sitio en el header.
 // Sin sesión la app es de solo lectura; entrar desbloquea la edición.
 export async function Footer() {
+  // Con el login desactivado no hay sesión que abrir ni cerrar.
+  if (AUTH_DISABLED) return null;
   const editable = await canEdit();
   const linkClass =
     "inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground/70 underline-offset-2 transition-colors hover:text-foreground hover:underline";
